@@ -95,30 +95,27 @@ export default function Navbar() {
   }, [searchOpen]);
 
   // 🎯 Handle search result click - Navigate to home and play
-  const handleResultClick = (result) => {
-    console.log("Opening Details For:", result.title);
-    
-    // Build the media object
-    const mediaToPlay = {
-      _id: result._id || result.imdb_id,
-      imdb_id: result.imdb_id,
-      type: result.type,
-      title: result.title,
-      year: result.year,
-      images: result.images || {},
-      rating: result.rating,
-      synopsis: result.synopsis || result.overview || "",
-      genres: result.genres || []
-    };
-    
-    // Close search
-    setSearchOpen(false);
-    setSearchQuery("");
-    setSearchResults([]);
-    
-    // Navigate to home with playMedia state
-     navigate(`/details/${mediaType}/${mediaId}`);
-  };
+  // 🎯 Handle search result click - Navigate to DETAILS page
+const handleResultClick = (result) => {
+  console.log("Opening Details For:", result.title);
+  
+  // Get the correct type
+  let mediaType = result.type;
+  if (mediaType === 'series') mediaType = 'tv';
+  
+  // Get the correct ID
+  const mediaId = result._id || result.imdb_id || result.id;
+  
+  console.log("Navigating to:", `/details/${mediaType}/${mediaId}`);
+  
+  // Close search
+  setSearchOpen(false);
+  setSearchQuery("");
+  setSearchResults([]);
+  
+  // Navigate to details page
+  navigate(`/details/${mediaType}/${mediaId}`);
+};
 
   const isActive = (path) => location.pathname === path;
 
