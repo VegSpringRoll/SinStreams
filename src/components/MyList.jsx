@@ -33,14 +33,14 @@ export default function MyList() {
   };
 
   const handleRemove = async (mediaId) => {
-    try {
-      await removeFromWatchlist(user.id, mediaId);
-      setWatchlist(prev => prev.filter(item => item._id !== mediaId));
-      console.log("Removed from watchlist:", mediaId);
-    } catch (err) {
-      console.error("Failed to remove:", err);
-    }
-  };
+  try {
+    await removeFromWatchlist(mediaId);
+    setWatchlist(prev => prev.filter(item => item._id !== mediaId));
+    console.log("Removed from watchlist:", mediaId);
+  } catch (err) {
+    console.error("Failed to remove:", err);
+  }
+};
 
   const handlePlay = (media) => {
     setPlayingMedia(media);

@@ -130,11 +130,9 @@ export const getWatchlist = async () => {
   }
 };
 
-export const removeFromWatchlist = async (userId, mediaId) => {
+export const removeFromWatchlist = async (mediaId) => {
   try {
-    const { data } = await axios.delete(
-      `${BACKEND_URL}/user/watchlist/${userId}/${mediaId}`
-    );
+    const { data } = await axios.delete(`${BACKEND_URL}/user/watchlist/${mediaId}`);
     return data;
   } catch (err) {
     console.error("Remove from watchlist error:", err.message);
