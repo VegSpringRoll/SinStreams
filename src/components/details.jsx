@@ -195,9 +195,13 @@ export default function Details() {
               )}
 
               <div style={styles.actionRow}>
-                <button onClick={() => setPlaying(true)} style={styles.playBtn}>
-                  <Play size={20} fill="white" /> Play Now
-                </button>
+                <button onClick={() => {
+                    navigate(`/watch/${media.type}/${media._id}`, {
+                        state: { media, autoPlay: true }
+                    });
+                    }} style={styles.playBtn}>
+                    <Play size={20} fill="white" /> Play Now
+                    </button>
                 <button onClick={handleWatchlist} style={{
                   ...styles.watchlistBtn,
                   ...(inWatchlist ? styles.watchlistActive : {})
