@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
-const API_KEY = process.env.TMDB_API_KEY;
+const API_KEY = process.env.TMDB_KEY;
 
 // Cache for TMDB requests
 const cache = new Map();

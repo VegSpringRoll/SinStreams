@@ -118,7 +118,7 @@ const formatSourceName = (name) => {
  */
 export const getIMDBIdFromTMDB = async (tmdbId, type = 'movie') => {
   try {
-    const apiKey = process.env.TMDB_API_KEY;
+    const apiKey = process.env.TMDB_KEY;
     const endpoint = type === 'movie' 
       ? `https://api.themoviedb.org/3/movie/${tmdbId}/external_ids`
       : `https://api.themoviedb.org/3/tv/${tmdbId}/external_ids`;

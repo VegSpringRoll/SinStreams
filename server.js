@@ -21,7 +21,7 @@ import Watchlist from "./models/Watchlist.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ── Middleware ──────────────────────────────────────────────
+//  Middleware 
 app.use(cors({ 
   origin: "http://localhost:5173", 
   credentials: true,
@@ -70,7 +70,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/stream", streamRoutes);
 app.use("/api/proxy", proxyRoutes);
 
-// 🧪 TEST ROUTES
+// TEST ROUTES
 app.get('/api/test/db', async (req, res) => {
   try {
     const state = mongoose.connection.readyState;
@@ -103,12 +103,12 @@ app.get('/api/test/all', async (req, res) => {
   }
 });
 
-// ─── 404 HANDLER ───
+// 404 HANDLER
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found", path: req.originalUrl });
 });
 
-// ─── GLOBAL ERROR HANDLER ───
+// GLOBAL ERROR HANDLER 
 app.use((err, req, res, next) => {
   console.error("💥 Global Error:", err.stack);
   res.status(err.status || 500).json({
@@ -116,7 +116,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── MONGODB CONNECTION & SERVER START ───
+// MONGODB CONNECTION & SERVER START :)
 const startServer = async () => {
   try {
     if (!process.env.MONGO_URI) {
