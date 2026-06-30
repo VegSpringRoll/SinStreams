@@ -129,31 +129,31 @@ export default function MyList() {
               />
               {/* Remove button */}
               <button
-                onClick={() => handleRemove(item._id)}
-                style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  zIndex: 5,
-                  background: 'rgba(229, 9, 20, 0.9)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '28px',
-                  height: '28px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  transition: 'all 0.2s',
-                }}
-                title="Remove from list"
-                onMouseEnter={e => e.target.style.background = '#ff1a1a'}
-                onMouseLeave={e => e.target.style.background = 'rgba(229, 9, 20, 0.9)'}
-              >
-                <Trash2 size={14} />
-              </button>
+  onClick={() => handleRemove(item._id)}
+  style={{
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    zIndex: 50,  // ⬅️ was 5, now higher than MediaCard's hover z-index (10)
+    background: 'rgba(229, 9, 20, 0.9)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: '28px',
+    height: '28px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '14px',
+    transition: 'all 0.2s',
+  }}
+  title="Remove from list"
+  onMouseEnter={e => e.target.style.background = '#ff1a1a'}
+  onMouseLeave={e => e.target.style.background = 'rgba(229, 9, 20, 0.9)'}
+>
+  <Trash2 size={14} />
+</button>
             </div>
           ))}
         </div>
