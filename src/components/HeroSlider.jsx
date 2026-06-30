@@ -231,7 +231,7 @@ useEffect(() => {
         </AnimatePresence>
 
         {/* CONTENT */}
-        <div style={{
+        <div className="hs-content" style={{
   position: "absolute", inset: 0,
   display: "flex", alignItems: "center",
   padding: isMobile ? "0 20px" : "0 64px",
@@ -336,7 +336,7 @@ useEffect(() => {
               >
                 {/* Watch Now - Opens VideoPlayer */}
                 <button
-                  className="hs-btn"
+                  className="hs-buttons"
                   onClick={handleWatch}
                   style={{
                     padding: "13px 28px",
@@ -390,7 +390,7 @@ useEffect(() => {
         {/* THUMBNAIL STRIP */}
         {/* THUMBNAIL STRIP */}
 {!isMobile && (
-  <div style={{
+  <div className="hs-thumbnails" style={{
     position: "absolute", right: 48, top: "50%",
     transform: "translateY(-50%)",
     display: "flex", flexDirection: "column", gap: 12,
