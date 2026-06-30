@@ -6,6 +6,7 @@ import Watch from './components/Watch'
 import Movies from './components/Movies'
 import MyList from './components/MyList'
 import Series from './components/Series'
+import Details from './components/details'
 function App() {
   return (
     <>
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/movies" element={<Movies />} />
         <Route path="/mylist" element={<MyList />} />
+        <Route path="/details/:type/:id" element={<Details />} />
         <Route path="/watch/:type/:id" element={<Watch />} />
         <Route path="/series" element={<Series />} />
       </Routes>

@@ -80,35 +80,25 @@ export default function MediaCard({
 
   // Handle Play Button Click
   const handlePlay = (e) => {
-    e.stopPropagation();
-    if (onPlay) {
-      onPlay(media);
-    } else {
-      // Fallback: Navigate to watch page
-      navigate(`/watch/${type}/${media._id || media.imdb_id}`, {
-        state: { media }
-      });
-    }
-  };
+  e.stopPropagation();
+  if (onPlay) {
+    onPlay(media);
+  } else {
+    navigate(`/details/${media.type}/${media._id || media.imdb_id}`, { state: { autoPlay: true } });
+  }
+};
 
   // Handle Card Click
   const handleClick = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    const finalId = media._id || media.imdb_id || "unknown";
-    
-    // If onPlay exists, use it; otherwise navigate
-    if (onPlay) {
-      onPlay(media);
-    } else {
-      navigate(`/watch/${type}/${finalId}`, {
-        state: { media }
-      });
-    }
-  };
+  e.preventDefault();
+  e.stopPropagation();
+  
+  const mediaId = media._id || media.imdb_id || media.id;
+  const mediaType = media.type === 'series' ? 'tv' : media.type;
+  
+  // Navigate to details page instead of playing directly
+  navigate(`/details/${mediaType}/${mediaId}`);
+};
 
   const { user } = useUser();
 
