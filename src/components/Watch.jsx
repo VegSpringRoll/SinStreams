@@ -4,7 +4,7 @@ import axios from "axios";
 import MediaCard from "../components/MediaCard";
 import { Star, Clock, Calendar, ArrowLeft, Play, Monitor } from "lucide-react";
 
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
 
 export default function Watch() {
@@ -226,7 +226,7 @@ export default function Watch() {
   const currentEpisodeName = episodes.find(ep => ep.episode_number === currentEpisode)?.name || `Episode ${currentEpisode}`;
 
   return (
-    <div style={styles.container}>
+    <div className="page-content" style={styles.container}>
       {/* Back Button */}
       <div style={styles.topNav}>
         <button onClick={() => navigate(-1)} style={styles.backBtn}>
@@ -235,7 +235,7 @@ export default function Watch() {
       </div>
 
       {/* Video Section */}
-      <div style={styles.videoSection}>
+      <div className="watch-video" style={styles.videoSection}>
         {loadingSources ? (
           <div style={styles.videoPlaceholder}>
             <div style={styles.spinner} />
@@ -319,10 +319,10 @@ export default function Watch() {
       </div>
 
       {/* Movie Details */}
-      <div style={styles.detailsSection}>
+      <div className="watch-details" style={styles.detailsSection}>
         <div style={styles.detailsContent}>
           {media.images?.poster && (
-            <div style={styles.posterContainer}>
+            <div className="watch-poster" style={styles.posterContainer}>
               <img src={media.images.poster} alt={media.title} style={styles.poster} />
             </div>
           )}

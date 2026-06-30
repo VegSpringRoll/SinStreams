@@ -48,7 +48,7 @@ export default function MyList() {
 
   if (!isSignedIn) {
     return (
-      <div style={{
+      <div className="page-content" style={{
         background: "#080c14",
         minHeight: "100vh",
         display: "flex",
@@ -113,7 +113,7 @@ export default function MyList() {
       )}
 
       {watchlist.length > 0 ? (
-        <div style={{
+        <div className="media-grid" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
           gap: "20px",

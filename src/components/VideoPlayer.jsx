@@ -252,8 +252,8 @@ export default function VideoPlayer({ media, onClose }) {
   // Loading State
   if (loading) {
     return (
-      <div style={styles.overlay} onClick={handleOverlayClick}>
-        <div style={styles.player}>
+      <div className="video-player-overlay" style={styles.overlay} onClick={handleOverlayClick}>
+        <div className="video-player-container" style={styles.player}>
           <div style={styles.centerContent}>
             <div style={styles.spinner} />
             <p style={styles.loadingText}>Loading player...</p>
@@ -267,8 +267,8 @@ export default function VideoPlayer({ media, onClose }) {
   // Error State
   if (error) {
     return (
-      <div style={styles.overlay} onClick={handleOverlayClick}>
-        <div style={styles.player}>
+      <div className="video-player-overlay" style={styles.overlay} onClick={handleOverlayClick}>
+        <div className="video-player-container" style={styles.player}>
           <div style={styles.centerContent}>
             <div style={{ fontSize: 48 }}>😕</div>
             <p style={{ color: '#ccc', fontSize: 18, fontFamily: "'DM Sans', sans-serif" }}>{error}</p>
