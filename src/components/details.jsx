@@ -5,7 +5,7 @@ import { Play, Plus, Check, Star, Clock, Calendar, Film, Tv } from 'lucide-react
 import { useUser } from '@clerk/clerk-react';
 import VideoPlayer from '../components/VideoPlayer';
 
-const BACKEND_URL = 'http://localhost:5000/api';
+const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
 
 export default function Details() {
