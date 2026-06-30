@@ -149,14 +149,14 @@ export default function VideoPlayer({ media, onClose }) {
       const sources = [];
       const anyId = tmdbId || imdbId; // Fallback ID for sources that can use either
       
-      // 🥇 #1 - SMASHYSTREAM (Primary) - Use imdbId, fallback to anyId
+      // #1 - VIDNEST (Needs tmdbId, fallback to anyId)
       sources.push({
-        name: '⭐Sinsinwar Premium🤫',
+        name: '👑 VIP',
         url: isSeries 
-          ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` 
-          : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
-        quality: 'HD',
-        id: 'smashystream'
+          ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
+          : `https://vidnest.fun/movie/${tmdbId || anyId}`,
+        quality: 'HD/4K',
+        id: 'vidnest'
       });
       
       // 🥈 #2 - 2EMBED (Secondary) - Use tmdbId, fallback to anyId
@@ -179,14 +179,14 @@ export default function VideoPlayer({ media, onClose }) {
         id: 'vidsrc'
       });
 
-      // #4 - VIDNEST (Needs tmdbId, fallback to anyId)
+      // 🥇 #4 - SMASHYSTREAM (Primary) - Use imdbId, fallback to anyId
       sources.push({
-        name: '⭐Premium2',
+        name: '⭐ Premium',
         url: isSeries 
-          ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
-          : `https://vidnest.fun/movie/${tmdbId || anyId}`,
-        quality: 'HD/4K',
-        id: 'vidnest'
+          ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` 
+          : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
+        quality: 'HD',
+        id: 'smashystream'
       });
         
       // Other sources (no particular order)
