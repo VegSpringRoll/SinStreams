@@ -12,11 +12,59 @@
       padding: 0 16px !important;
     }
     
-    /* Hero slider */
+    /* Hero slider - smaller height on mobile */
+    .hero-slider-container {
+      height: 60vh !important;
+      min-height: 400px !important;
+    }
+    
+    /* Hero content - less padding, smaller text */
+    .hero-slider-container .hs-content {
+      padding: 0 20px !important;
+    }
+    
+    /* Hero title - smaller on mobile */
+    .hero-slider-container h1 {
+      font-size: 28px !important;
+      margin-bottom: 10px !important;
+    }
+    
+    /* Hero buttons - stack on mobile */
+    .hero-slider-container .hs-buttons {
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+    }
+    
+    /* Hero buttons - smaller */
+    .hero-slider-container .hs-btn {
+      padding: 10px 20px !important;
+      font-size: 13px !important;
+    }
+    
+    /* Hero synopsis - hide on very small screens */
+    .hero-slider-container p {
+      display: none !important;
+    }
+    
+    /* Hero thumbnails - hide on mobile */
+    .hero-slider-container .hs-thumbnails {
+      display: none !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
     .hero-slider-container {
       height: 50vh !important;
-      min-height: 350px !important;
+      min-height: 300px !important;
     }
+    
+    .hero-slider-container h1 {
+      font-size: 22px !important;
+    }
+    
+    .hero-slider-container .hs-btn {
+      padding: 8px 16px !important;
+      font-size: 12px !important;}
     
     /* Grid */
     .media-grid {
