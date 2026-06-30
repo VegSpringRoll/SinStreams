@@ -1,0 +1,567 @@
+import { useState, useEffect } from 'react'
+import { getMovies, getShows } from '../../services/mediaService'
+import MediaCard from '../components/MediaCard'
+import HeroSlider from '../components/HeroSlider'
+import VideoPlayer from '../components/VideoPlayer'
+import { useLocation } from 'react-router-dom'
+import { getAnime } from '../../services/mediaService'
+
+export default function Home() {
+  const [watchlist, setWatchlist] = useState([])
+  const [movies, setMovies] = useState([])
+  const [series, setSeries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [loadingSeries, setLoadingSeries] = useState(true)
+  const [playingMedia, setPlayingMedia] = useState(null)
+  const [showQR, setShowQR] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.playMedia) {
+      console.log("Playing media from search:", location.state.playMedia.title);
+      setPlayingMedia(location.state.playMedia);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
+  // Toggle watchlist function
+  const toggleWatchlist = (id) => {
+    setWatchlist(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : [...prev, id]
+    )
+  }
+
+  // Handle play media
+  const handlePlay = (media) => {
+    console.log("🎬 Playing:", media.title);
+    setPlayingMedia(media);
+  };
+
+  // Handle close player
+  const handleClosePlayer = () => {
+    setPlayingMedia(null);
+  };
+
+  // UPI functions
+  const UPI_ID = 'https://www.youtube.com/@uttkarshUwU'; 
+  const copyUPI = () => {
+    navigator.clipboard.writeText(UPI_ID);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const openUPIApp = (amount = 10) => {
+    const upiLink = `upi://pay?pa=${UPI_ID}&pn=StreamHub&tn=Donation&am=${amount}&cu=INR`;
+    window.open(upiLink, '_blank');
+  };
+
+  // Fetch movies
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const data = await getMovies()
+        console.log("Movies loaded:", data?.length || 0, "items")
+        
+        setMovies(data || [])
+        
+        if (!data || data.length === 0) {
+          setError("No movies available at the moment.")
+        }
+      } catch (err) {
+        console.error("Failed to fetch movies:", err)
+        setError("Failed to load movies. Please check your connection.")
+        setMovies([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMovies()
+  }, [])
+
+  // Fetch series
+  useEffect(() => {
+    const fetchSeries = async () => {
+      try {
+        setLoadingSeries(true)
+        
+        const data = await getShows()
+        console.log("Series loaded:", data?.length || 0, "items")
+        
+        setSeries(data || [])
+      } catch (err) {
+        console.error("Failed to fetch series:", err)
+        setSeries([])
+      } finally {
+        setLoadingSeries(false)
+      }
+    }
+
+    fetchSeries()
+  }, [])
+
+  // Loading state
+  if (loading) {
+    return (
+      <div style={{
+        background: "#080c14",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "#c8d0e0",
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 20 }}>
+            <div className="loading-spinner" style={{
+              width: 60,
+              height: 60,
+              border: "3px solid rgba(255,255,255,0.1)",
+              borderTop: "3px solid #e50914",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 20px"
+            }} />
+          </div>
+          <p style={{ fontSize: 18, fontWeight: 500 }}>Loading amazing content for you...</p>
+          <p style={{ fontSize: 14, color: "#666", marginTop: 8 }}>Fetching the latest movies & shows</p>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state 
+  if (error && movies.length === 0 && series.length === 0) {
+    return (
+      <div style={{
+        background: "#080c14",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "#c8d0e0",
+        fontFamily: "'DM Sans', sans-serif",
+        paddingTop: 90,
+        paddingLeft: 32,
+        paddingRight: 32,
+      }}>
+        <div style={{ textAlign: "center", maxWidth: 400 }}>
+          <div style={{ fontSize: 60, marginBottom: 20 }}>😕</div>
+          <h2 style={{ color: "#e0e0e0", marginBottom: 10, fontSize: 24 }}>Oops! Something went wrong</h2>
+          <p style={{ color: "#888", marginBottom: 24, fontSize: 16, lineHeight: 1.6 }}>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: "14px 32px",
+              background: "#e50914",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 16,
+              fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => e.target.style.background = "#f40612"}
+            onMouseLeave={(e) => e.target.style.background = "#e50914"}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div style={{
+        background: "#080c14",
+        minHeight: "100vh",
+        paddingTop: 90,
+        paddingLeft: 32,
+        paddingRight: 32,
+        paddingBottom: 40,
+      }}>
+        {/* Hero Slider - Only show if there are movies */}
+        {movies.length > 0 && (
+          <HeroSlider
+            slides={movies.slice(0, 4)}
+            watchlist={watchlist}
+            onAddList={(id) => toggleWatchlist(id)}
+            onPlay={handlePlay}
+          />
+        )}
+
+        {/* Trending Movies Section */}
+        <h2 style={{
+          fontFamily: "'DM Sans', sans-serif",
+          color: "#c8d0e0",
+          marginBottom: 20,
+          fontSize: 20,
+          fontWeight: 600,
+          marginTop: movies.length > 0 ? 40 : 0,
+        }}>
+          🎬 Trending Movies
+        </h2>
+
+        {movies.length > 0 ? (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gap: "20px",
+            paddingBottom: "40px",
+          }}>
+            {movies.map((movie, i) => (
+              <MediaCard
+                key={movie._id || movie.imdb_id || i}
+                media={movie}
+                type="movie"
+                index={i}
+                inList={watchlist.includes(movie._id)}
+                onAddList={(id) => toggleWatchlist(id)}
+                onPlay={handlePlay}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={{ 
+            padding: "40px 0", 
+            textAlign: "center",
+            color: "#888", 
+            fontFamily: "'DM Sans', sans-serif" 
+          }}>
+            <p style={{ fontSize: 16, marginBottom: 8 }}>🎬 No movies available right now.</p>
+            <p style={{ fontSize: 14, color: "#555" }}>Check back later for new releases!</p>
+          </div>
+        )}
+
+        {/* Trending Series Section */}
+        <h2 style={{
+          fontFamily: "'DM Sans', sans-serif",
+          color: "#c8d0e0",
+          marginBottom: 20,
+          fontSize: 20,
+          fontWeight: 600,
+          marginTop: 20,
+        }}>
+          📺 Popular Series
+        </h2>
+
+        {loadingSeries ? (
+          <div style={{ padding: "40px 0", textAlign: "center" }}>
+            <p style={{ color: "#888", fontFamily: "'DM Sans', sans-serif", fontSize: 16 }}>
+              Loading series...
+            </p>
+          </div>
+        ) : series.length > 0 ? (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gap: "20px",
+            paddingBottom: "40px",
+          }}>
+            {series.map((show, i) => (
+              <MediaCard
+                key={show._id || show.imdb_id || i}
+                media={show}
+                type="series"
+                index={i}
+                inList={watchlist.includes(show._id)}
+                onAddList={(id) => toggleWatchlist(id)}
+                onPlay={handlePlay}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={{ 
+            padding: "40px 0", 
+            textAlign: "center",
+            color: "#888", 
+            fontFamily: "'DM Sans', sans-serif" 
+          }}>
+            <p style={{ fontSize: 16, marginBottom: 8 }}>📺 No series available right now.</p>
+            <p style={{ fontSize: 14, color: "#555" }}>Popular shows will appear here!</p>
+          </div>
+        )}
+
+        {/* ===== FOOTER SECTION ===== */}
+        <div style={{
+          marginTop: 60,
+          paddingTop: 40,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+        }}>
+          
+          {/* Donation Section */}
+          <div style={{
+            maxWidth: 500,
+            margin: "0 auto 40px",
+            background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+            borderRadius: 20,
+            padding: 30,
+            border: "1px solid rgba(255,255,255,0.1)",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>❤️</div>
+            <h3 style={{
+              color: "#fff",
+              fontSize: 22,
+              fontWeight: 700,
+              margin: "0 0 10px 0",
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              Support This Project
+            </h3>
+            <p style={{
+              color: "#888",
+              fontSize: 14,
+              lineHeight: 1.6,
+              marginBottom: 20,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              Help me keep the website running and add more features! 
+              Every contribution makes a difference. （￣︶￣）
+            </p>
+
+            {!showQR ? (
+              <button
+                onClick={() => setShowQR(true)}
+                style={{
+                  background: "linear-gradient(135deg, #e50914, #ff4444)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "14px 30px",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "transform 0.2s",
+                }}
+                onMouseEnter={(e) => e.target.style.transform = "scale(1.05)"}
+                onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+              >
+                💰 Support with UPI
+              </button>
+            ) : (
+              <div>
+                {/* QR Code */}
+                <div style={{
+                  width: 180,
+                  height: 180,
+                  margin: "0 auto 15px",
+                  borderRadius: 15,
+                  overflow: "hidden",
+                  border: "2px solid rgba(255,255,255,0.15)",
+                }}>
+                  <img 
+                    src="/images/donation-qr.jpeg" 
+                    alt="UPI QR Code"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:14px;">QR Code<br/>Placeholder</div>';
+                    }}
+                  />
+                </div>
+
+                {/* UPI ID */}
+                <div style={{
+                  background: "rgba(255,255,255,0.05)",
+                  borderRadius: 10,
+                  padding: "10px 15px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 15,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}>
+                  <code style={{
+                    color: "#4CAF50",
+                    fontSize: 13,
+                    fontFamily: "monospace",
+                  }}>
+                    {UPI_ID}
+                  </code>
+                  <button
+                    onClick={copyUPI}
+                    style={{
+                      background: "rgba(255,255,255,0.1)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "5px 12px",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    {copied ? '✅ Copied!' : '📋 Copy'}
+                  </button>
+                </div>
+
+                {/* Quick Pay Buttons */}
+                <div style={{ marginBottom: 15 }}>
+                  <p style={{
+                    color: "#666",
+                    fontSize: 12,
+                    marginBottom: 10,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>
+                    Suggested amounts:
+                  </p>
+                  <div style={{
+                    display: "flex",
+                    gap: 8,
+                    justifyContent: "center",
+                    flexWrap: "wrap",
+                  }}>
+                    {[10, 50, 100].map(amount => (
+                      <button
+                        key={amount}
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          color: "#fff",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                          borderRadius: 8,
+                          padding: "8px 16px",
+                          cursor: "pointer",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          fontFamily: "'DM Sans', sans-serif",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = "rgba(229,9,20,0.3)";
+                          e.target.style.borderColor = "#e50914";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "rgba(255,255,255,0.08)";
+                          e.target.style.borderColor = "rgba(255,255,255,0.15)";
+                        }}
+                      >
+                        ₹{amount}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p style={{
+              color: "#555",
+              fontSize: 11,
+              marginTop: 15,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              🔒 Secure payment • Voluntary contributions only
+            </p>
+          </div>
+
+          {/* Contact Section */}
+          <div style={{
+            textAlign: "center",
+            marginBottom: 30,
+          }}>
+            <p style={{
+              color: "#888",
+              fontSize: 14,
+              marginBottom: 12,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              📩 If you encounter any issues, contact me:
+            </p>
+            <a
+              href="https://www.instagram.com/_ut_sr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                background: "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)",
+                color: "#fff",
+                textDecoration: "none",
+                padding: "12px 24px",
+                borderRadius: 12,
+                fontSize: 15,
+                fontWeight: 600,
+                fontFamily: "'DM Sans', sans-serif",
+                transition: "transform 0.2s, box-shadow 0.2s",
+                boxShadow: "0 4px 15px rgba(220, 39, 67, 0.3)",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = "scale(1.05)";
+                e.target.style.boxShadow = "0 6px 20px rgba(220, 39, 67, 0.5)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = "scale(1)";
+                e.target.style.boxShadow = "0 4px 15px rgba(220, 39, 67, 0.3)";
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              @_ut_sr
+            </a>
+          </div>
+
+          {/* Developer Credit */}
+          <div style={{
+            textAlign: "center",
+            paddingTop: 20,
+            borderTop: "1px solid rgba(255,255,255,0.05)",
+          }}>
+            <p style={{
+              color: "#555",
+              fontSize: 13,
+              fontFamily: "'DM Sans', sans-serif",
+              margin: 0,
+            }}>
+              Developed by{' '}
+              <span style={{
+                color: "#e50914",
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+              }}>
+                Uttkarsh
+              </span>
+              {' '}© {new Date().getFullYear()}
+            </p>
+            <p style={{
+              color: "#444",
+              fontSize: 11,
+              fontFamily: "'DM Sans', sans-serif",
+              marginTop: 5,
+            }}>
+              All rights reserved. Stream responsibly.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Video Player Modal */}
+      {playingMedia && (
+        <VideoPlayer
+          media={playingMedia}
+          onClose={handleClosePlayer}
+        />
+      )}
+    </>
+  )
+}

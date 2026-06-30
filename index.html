@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sinstreams</title>
+    <script>
+  // Block common ad/popup scripts
+  window.addEventListener('load', function() {
+    // Block popunders
+    setInterval(function() {
+      if (window.opener || document.hidden === false) {
+        // Keep focus on current window
+      }
+    }, 1000);
+  });
+
+  // Prevent beforeunload popups
+  window.addEventListener('beforeunload', function(e) {
+    e.stopImmediatePropagation();
+  }, true);
+</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
