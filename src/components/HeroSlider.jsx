@@ -130,7 +130,7 @@ useEffect(() => {
   if (mediaType === 'series') mediaType = 'tv';
   
   // Navigate to Watch page
-  window.location.href = `#/watch/${mediaType}/${mediaId}`;
+  navigate(`/details/${mediaType}/${mediaId}`);
   // Or if using navigate:
   // navigate(`/watch/${mediaType}/${mediaId}`, { state: { media: slide } });
 };
