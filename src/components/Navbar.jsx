@@ -96,7 +96,7 @@ export default function Navbar() {
 
   // 🎯 Handle search result click - Navigate to home and play
   const handleResultClick = (result) => {
-    console.log("Playing from search:", result.title);
+    console.log("Opening Details For:", result.title);
     
     // Build the media object
     const mediaToPlay = {
@@ -117,9 +117,7 @@ export default function Navbar() {
     setSearchResults([]);
     
     // Navigate to home with playMedia state
-    navigate('/', { 
-      state: { playMedia: mediaToPlay }
-    });
+     navigate(`/details/${mediaType}/${mediaId}`);
   };
 
   const isActive = (path) => location.pathname === path;
