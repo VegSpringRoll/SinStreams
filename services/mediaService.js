@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Point this to your Node.js backend URL
-const BACKEND_URL = "http://localhost:5000/api";
+const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 
 // ─── Helper: Fetch with retry logic ───
 const fetchWithRetry = async (url, retries = 2, timeout = 10000) => {
