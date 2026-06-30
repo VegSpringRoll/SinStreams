@@ -187,26 +187,32 @@ export default function Watch() {
 
   // Fetch recommendations
   const fetchRecommendations = async () => {
-    try {
-      setLoadingRecs(true);
-      const { data } = await axios.get(`${BACKEND_URL}/media/movies`);
-      const recs = data
-        .filter(m => m._id !== media._id && m.imdb_id !== media.imdb_id)
-        .slice(0, 12);
-      setRecommendations(recs);
-    } catch (err) {
-      console.error("Recommendations error:", err);
-      // Fallback: also try series
-      try {
-        const { data } = await axios.get(`${BACKEND_URL}/media/series`);
-        setRecommendations(data.slice(0, 12));
-      } catch (e) {
-        setRecommendations([]);
-      }
-    } finally {
-      setLoadingRecs(false);
-    }
-  };
+  try {
+    setLoadingRecs(true);
+    
+    // Use your deployed backend URL
+    const BACKEND_URL = import.meta.env.PROD 
+      ? "https://sin-streams.vercel.app/"  // Replace with your actual backend URL
+      : "http://localhost:5000/api";
+    
+    const [moviesRes, seriesRes] = await Promise.all([
+      axios.get(`${BACKEND_URL}/media/movies`).catch(() => ({ data: [] })),
+      axios.get(`${BACKEND_URL}/media/series`).catch(() => ({ data: [] }))
+    ]);
+    
+    // Combine and filter out current media
+    let recs = [...(moviesRes.data || []), ...(seriesRes.data || [])]
+      .filter(m => m._id !== media._id && m.imdb_id !== media.imdb_id)
+      .slice(0, 12);
+    
+    setRecommendations(recs);
+  } catch (err) {
+    console.error("Recommendations error:", err);
+    setRecommendations([]);
+  } finally {
+    setLoadingRecs(false);
+  }
+};
 
   if (!media) {
     return (
