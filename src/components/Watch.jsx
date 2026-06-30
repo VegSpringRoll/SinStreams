@@ -261,15 +261,15 @@ export default function Watch() {
       </div>
 
       {/* CONTROLS BELOW VIDEO */}
-      <div style={styles.controlsSection}>
+      <div className="controls-section" style={styles.controlsSection}>
         {/* Episode Selector for Series */}
         {isSeries && (
-          <div style={styles.episodeBar}>
+          <div className="episode-bar" style={styles.episodeBar}>
             <div style={styles.episodeInfo}>
               <span style={styles.episodeLabel}>Now Playing</span>
               <span style={styles.episodeValue}>Season {currentSeason} • {currentEpisodeName}</span>
             </div>
-            <div style={styles.episodeControls}>
+            <div className="episode-controls" style={styles.episodeControls}>
               <div style={styles.selectGroup}>
                 <label style={styles.selectLabel}>Season</label>
                 <select value={currentSeason} onChange={(e) => handleSeasonChange(Number(e.target.value))} style={styles.select}>
@@ -278,7 +278,7 @@ export default function Watch() {
                   ))}
                 </select>
               </div>
-              <div style={styles.selectGroup}>
+              <div className="select-group" style={styles.selectGroup}>
                 <label style={styles.selectLabel}>Episode</label>
                 <select value={currentEpisode} onChange={(e) => handleEpisodeChange(Number(e.target.value))} style={styles.select}>
                   {episodes.map(ep => (
@@ -296,7 +296,7 @@ export default function Watch() {
             <span style={styles.sourceLabel}>
               <Monitor size={16} /> Streaming Server:
             </span>
-            <div style={styles.sourceButtons}>
+            <div className="source-buttons" style={styles.sourceButtons}>
               {sources.map((source, index) => (
                 <button
                   key={source.id}

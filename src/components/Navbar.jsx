@@ -442,6 +442,7 @@ const handleResultClick = (result) => {
             {/* Search box */}
             <motion.div
               ref={searchRef}
+              className="sin-search-overlay" 
               initial={{ opacity: 0, y: -20, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.97 }}
@@ -519,7 +520,7 @@ const handleResultClick = (result) => {
                           </div>
 
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: "#c8d0e0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            <div className="sin-result-title" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: "#c8d0e0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                               {result.title}
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
