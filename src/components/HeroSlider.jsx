@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Plus, Check, Info, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // ─── Type config ──────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -64,7 +65,7 @@ export default function HeroSlider({
   const [progress,  setProgress]  = useState(0);
   const intervalRef = useRef(null);
   const progressRef = useRef(null);
-
+  const navigate = useNavigate();
 // ── Responsive: detect mobile viewport ──────────────────────────────────────
 const [isMobile, setIsMobile] = useState(
   typeof window !== "undefined" ? window.innerWidth <= 768 : false
@@ -122,12 +123,17 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", onKey);
   }, [goNext, goPrev]);
 
-  // 🎬 Handle Watch - Opens VideoPlayer instead of navigating
+  // 🎬 Handle Watch - Navigate to Watch page
   const handleWatch = () => {
-    if (onPlay) {
-      onPlay(slide);
-    }
-  };
+  const mediaId = slide._id || slide.imdb_id;
+  let mediaType = slide.type;
+  if (mediaType === 'series') mediaType = 'tv';
+  
+  // Navigate to Watch page
+  window.location.href = `#/watch/${mediaType}/${mediaId}`;
+  // Or if using navigate:
+  // navigate(`/watch/${mediaType}/${mediaId}`, { state: { media: slide } });
+};
 
   const handleMore  = () => {
     console.log("More info for:", slide.title);
