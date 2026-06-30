@@ -87,13 +87,47 @@
     }
     
     /* Details page */
+     /* Details page - center everything */
     .details-main {
       flex-direction: column !important;
       align-items: center !important;
+      text-align: center !important;
     }
     
     .details-poster {
       width: 180px !important;
+      margin: 0 auto 20px !important;
+    }
+    
+    .details-poster img {
+      width: 100% !important;
+    }
+    
+    /* Center meta row */
+    .details-main .metaRow {
+      justify-content: center !important;
+    }
+    
+    /* Center genre pills */
+    .details-main .genreRow {
+      justify-content: center !important;
+    }
+    
+    /* Center action buttons */
+    .details-main .actionRow {
+      justify-content: center !important;
+      flex-wrap: wrap !important;
+    }
+    
+    /* Smaller title */
+    .details-main h1 {
+      font-size: 24px !important;
+      text-align: center !important;
+    }
+    
+    /* Synopsis left-align for readability */
+    .details-main p {
+      text-align: left !important;
     }
     
     /* Video modal */
