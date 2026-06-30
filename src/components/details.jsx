@@ -112,7 +112,7 @@ export default function Details() {
 
   if (loading) {
     return (
-      <div style={styles.container}>
+      <div className="page-content" style={styles.container}>
         <div style={styles.loadingContainer}>
           <div style={styles.spinner} />
           <p style={{ color: '#888', fontFamily: "'DM Sans', sans-serif" }}>Loading details...</p>
@@ -123,7 +123,7 @@ export default function Details() {
 
   if (error || !media) {
     return (
-      <div style={styles.container}>
+      <div className="page-content" style={styles.container}>
         <div style={styles.loadingContainer}>
           <p style={{ color: '#ccc', fontSize: 18 }}>{error || 'Not found'}</p>
           <button onClick={() => navigate(-1)} style={styles.backBtn}>Go Back</button>
@@ -134,7 +134,7 @@ export default function Details() {
 
   return (
     <>
-      <div style={styles.container}>
+      <div className="page-content" style={styles.container}>
         {/* Backdrop */}
         <div style={{
           ...styles.backdrop,
@@ -147,9 +147,9 @@ export default function Details() {
         <div style={styles.content}>
           <button onClick={() => navigate(-1)} style={styles.backBtn}>← Back</button>
           
-          <div style={styles.mainInfo}>
+          <div className="details-main" style={styles.mainInfo}>
             {/* Poster */}
-            <div style={styles.posterContainer}>
+            <div className="details-poster" style={styles.posterContainer}>
               {media.images?.poster ? (
                 <img src={media.images.poster} alt={media.title} style={styles.poster} />
               ) : (

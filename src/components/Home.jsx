@@ -185,7 +185,7 @@ export default function Home() {
 
   return (
     <>
-      <div style={{
+      <div className="page-content" style={{
         background: "#080c14",
         minHeight: "100vh",
         paddingTop: 90,
@@ -216,7 +216,7 @@ export default function Home() {
         </h2>
 
         {movies.length > 0 ? (
-          <div style={{
+          <div className="media-grid" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
             gap: "20px",

@@ -178,7 +178,7 @@ useEffect(() => {
       `}</style>
 
       <div
-        className="hs-root"
+        className="hero-slider-container"
         style={{
           position: "relative",
           width: "100%",

@@ -1,0 +1,18 @@
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Responsive base */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbar for horizontal scrolls */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

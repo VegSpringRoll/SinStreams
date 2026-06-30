@@ -3,7 +3,79 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  /* These ONLY apply on mobile - won't affect desktop at all */
+  @media (max-width: 768px) {
+    /* Navbar */
+    .sinema-nav {
+      padding: 0 16px !important;
+    }
+    
+    /* Hero slider */
+    .hero-slider-container {
+      height: 50vh !important;
+      min-height: 350px !important;
+    }
+    
+    /* Grid */
+    .media-grid {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+      gap: 12px !important;
+    }
+    
+    /* Watch page */
+    .watch-details {
+      flex-direction: column !important;
+      align-items: center !important;
+    }
+    
+    .watch-poster {
+      width: 150px !important;
+    }
+    
+    .watch-video {
+      border-radius: 0 !important;
+    }
+    
+    /* Details page */
+    .details-main {
+      flex-direction: column !important;
+      align-items: center !important;
+    }
+    
+    .details-poster {
+      width: 180px !important;
+    }
+    
+    /* Video modal */
+    .video-player-overlay {
+      padding: 0 !important;
+    }
+    
+    .video-player-container {
+      border-radius: 0 !important;
+    }
+    
+    /* Padding */
+    .page-content {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    
+    /* Title sizes */
+    .page-title {
+      font-size: 18px !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .media-grid {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+      gap: 10px !important;
+    }
+  }
+</style>
     <title>sinstreams</title>
     <script>
   // Block common ad/popup scripts
