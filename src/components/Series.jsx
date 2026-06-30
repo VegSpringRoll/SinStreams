@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import MediaCard from '../components/MediaCard';
 import { getShows } from '../../services/mediaService';
+
 export default function Series() {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Call the new backend route
-    axios.get("http://localhost:5000/api/media/series")
-      .then(res => {
-        setSeries(res.data);
+    getShows()
+      .then(data => {
+        setSeries(data);
         setLoading(false);
       })
       .catch(err => {
@@ -18,10 +17,6 @@ export default function Series() {
         setLoading(false);
       });
   }, []);
-
-  useEffect(() => {
-  getShows().then(data => setSeries(data));
-}, []);
 
   return (
     <div style={{ padding: '100px 32px', background: '#080c14', minHeight: '100vh' }}>

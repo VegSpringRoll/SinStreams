@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-const BACKEND_URL = 'http://localhost:5000/api';
+const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
 
 export default function VideoPlayer({ media, onClose }) {
