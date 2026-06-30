@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Plus, Check, Star, Clock, ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import axios from "axios";
+import { addToWatchlist, removeFromWatchlist } from "../../services/mediaService";
 
 // Type config
 const TYPE_CONFIG = {
@@ -114,35 +115,31 @@ export default function MediaCard({
   // Handle Watchlist
 const handleList = async (e) => {
   e.stopPropagation();
-  
+
   if (!user) {
     alert("Please sign in to add to your list");
     return;
   }
 
   const mediaId = media._id || media.imdb_id || id;
-  
+
   setListed(v => !v);
 
   try {
     if (!listed) {
-      // ADD
-      await axios.post("http://localhost:5000/api/user/watchlist", {
-        media: {
-          _id: mediaId,
-          imdb_id: media.imdb_id,
-          type: type,
-          title: media.title,
-          images: {
-            poster: media.images?.poster || null
-          }
+      await addToWatchlist(user.id, {
+        _id: mediaId,
+        imdb_id: media.imdb_id,
+        type: type,
+        title: media.title,
+        images: {
+          poster: media.images?.poster || null
         }
       });
     } else {
-      // REMOVE
-      await axios.delete(`http://localhost:5000/api/user/watchlist/${mediaId}`);
+      await removeFromWatchlist(user.id, mediaId);
     }
-    
+
     onAddList?.(id);
   } catch (err) {
     console.error("Watchlist error:", err.response?.data || err.message);

@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import MediaCard from '../components/MediaCard';
+import { getMovies } from '../../services/mediaService';
 
 export default function Movies() {
   const [movies, setMovies] = useState([]);
 
   useEffect(() => {
-    // Use the proxy to avoid CORS issues
-    axios.get("http://localhost:5000/api/media/movies")
-      .then(res => setMovies(res.data.filter(m => m.type === 'movie')))
+    getMovies()
+      .then(data => setMovies(data.filter(m => m.type === 'movie')))
       .catch(err => console.error(err));
   }, []);
 
