@@ -142,6 +142,16 @@ export default function Navbar() {
           padding: 4px 0;
           transition: color 0.2s;
         }
+
+        .sin-desktop-links { display: flex; }
+.sin-dev-credit { display: flex; }
+.sin-mobile-toggle { display: none; }
+
+@media (max-width: 768px) {
+  .sin-desktop-links { display: none !important; }
+  .sin-dev-credit { display: none !important; }
+  .sin-mobile-toggle { display: flex !important; }
+}
         .sin-link:hover { color: #c8d0e0; }
         .sin-link.active { color: #e8eaf0; }
         .sin-link::after {
@@ -235,7 +245,7 @@ export default function Navbar() {
         </Link>
 
         {/* ── NAV LINKS (desktop) ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 28, flex: 1 }}>
+        <div className="sin-desktop-links" style={{ display: "flex", alignItems: "center", gap: 28, flex: 1 }}>
           {NAV_LINKS.map(({ label, path, icon: Icon }) => (
             <Link
               key={path}
@@ -248,7 +258,7 @@ export default function Navbar() {
           ))}
         </div>
         {/* ── DEVELOPER CREDIT ── */}
-<div style={{
+<div className="sin-dev-credit" style={{
   display: "flex",
   alignItems: "center",
   marginRight: "20px",
@@ -409,10 +419,9 @@ export default function Navbar() {
 
           {/* Hamburger (mobile) */}
           <button
-            className="sin-icon-btn"
+            className="sin-icon-btn sin-mobile-toggle"
             onClick={() => setMobileOpen(v => !v)}
             aria-label="Menu"
-            style={{ display: "none" }}
           >
             {mobileOpen ? <X size={16} /> : <span style={{ fontSize: 16, lineHeight: 1 }}>☰</span>}
           </button>
