@@ -65,6 +65,16 @@ export default function HeroSlider({
   const intervalRef = useRef(null);
   const progressRef = useRef(null);
 
+// ── Responsive: detect mobile viewport ──────────────────────────────────────
+const [isMobile, setIsMobile] = useState(
+  typeof window !== "undefined" ? window.innerWidth <= 768 : false
+);
+useEffect(() => {
+  const onResize = () => setIsMobile(window.innerWidth <= 768);
+  window.addEventListener("resize", onResize);
+  return () => window.removeEventListener("resize", onResize);
+}, []);
+
   const slide    = slides[current];
   const cfg      = TYPE_CONFIG[slide?.type] || TYPE_CONFIG.movie;
   const inList   = watchlist.includes(slide?._id);
@@ -222,11 +232,11 @@ export default function HeroSlider({
 
         {/* CONTENT */}
         <div style={{
-          position: "absolute", inset: 0,
-          display: "flex", alignItems: "center",
-          padding: "0 64px",
-          paddingTop: 80,
-        }}>
+  position: "absolute", inset: 0,
+  display: "flex", alignItems: "center",
+  padding: isMobile ? "0 20px" : "0 64px",
+  paddingTop: 80,
+}}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={slide._id + "_content"}
@@ -235,7 +245,7 @@ export default function HeroSlider({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction > 0 ? -30 : 30 }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-              style={{ maxWidth: 580, zIndex: 2 }}
+              style={{ maxWidth: isMobile ? "100%" : 580, zIndex: 2 }}
             >
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -378,44 +388,47 @@ export default function HeroSlider({
         </div>
 
         {/* THUMBNAIL STRIP */}
-        <div style={{
-          position: "absolute", right: 48, top: "50%",
-          transform: "translateY(-50%)",
-          display: "flex", flexDirection: "column", gap: 12,
-          zIndex: 10,
-        }}>
-          {slides.map((s, i) => {
-            const isActive = i === current;
-            const sCfg = TYPE_CONFIG[s.type] || TYPE_CONFIG.movie;
-            return (
-              <motion.div
-                key={s._id}
-                onClick={() => goTo(i, i > current ? 1 : -1)}
-                animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.92 }}
-                transition={{ duration: 0.25 }}
-                style={{
-                  width: 56, height: 80, borderRadius: 7, overflow: "hidden", cursor: "pointer",
-                  border: isActive ? `2px solid ${sCfg.accent}` : "2px solid rgba(255,255,255,0.08)",
-                  boxShadow: isActive ? `0 0 16px ${sCfg.glow}` : "none",
-                  background: "#0d1420", flexShrink: 0,
-                }}
-              >
-                <img
-                  src={s.images?.poster || s.images?.fanart}
-                  alt={s.title}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  onError={e => { e.target.style.display = "none"; }}
-                />
-              </motion.div>
-            );
-          })}
-        </div>
+        {/* THUMBNAIL STRIP */}
+{!isMobile && (
+  <div style={{
+    position: "absolute", right: 48, top: "50%",
+    transform: "translateY(-50%)",
+    display: "flex", flexDirection: "column", gap: 12,
+    zIndex: 10,
+  }}>
+    {slides.map((s, i) => {
+      const isActive = i === current;
+      const sCfg = TYPE_CONFIG[s.type] || TYPE_CONFIG.movie;
+      return (
+        <motion.div
+          key={s._id}
+          onClick={() => goTo(i, i > current ? 1 : -1)}
+          animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.92 }}
+          transition={{ duration: 0.25 }}
+          style={{
+            width: 56, height: 80, borderRadius: 7, overflow: "hidden", cursor: "pointer",
+            border: isActive ? `2px solid ${sCfg.accent}` : "2px solid rgba(255,255,255,0.08)",
+            boxShadow: isActive ? `0 0 16px ${sCfg.glow}` : "none",
+            background: "#0d1420", flexShrink: 0,
+          }}
+        >
+          <img
+            src={s.images?.poster || s.images?.fanart}
+            alt={s.title}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            onError={e => { e.target.style.display = "none"; }}
+          />
+        </motion.div>
+      );
+    })}
+  </div>
+)}
 
         {/* BOTTOM CONTROLS */}
         <div style={{
-          position: "absolute", bottom: 36, left: 64, right: 64,
-          display: "flex", alignItems: "center", gap: 20, zIndex: 10,
-        }}>
+  position: "absolute", bottom: 36, left: isMobile ? 20 : 64, right: isMobile ? 20 : 64,
+  display: "flex", alignItems: "center", gap: 20, zIndex: 10,
+}}>
           <button className="hs-arrow" onClick={goPrev} style={{ width: 38, height: 38 }}>
             <ChevronLeft size={18} color="#8892a4" />
           </button>
