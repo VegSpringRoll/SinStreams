@@ -124,7 +124,30 @@ const handleList = async (e) => {
   const hue = title.charCodeAt(0) % 360;
   const hue2 = (hue + 40) % 360;
   const placeholderBg = `linear-gradient(135deg, hsl(${hue},30%,14%) 0%, hsl(${hue2},25%,20%) 100%)`;
-
+  const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
+const handleWatchlist = async () => {
+if (!user) return alert("Please sign in");
+    
+    try {
+      if (inWatchlist) {
+        await axios.delete(`${BACKEND_URL}/user/watchlist/${user.id}/${media._id}`);
+      } else {
+        await axios.post(`${BACKEND_URL}/user/watchlist`, {
+          clerkId: user.id,
+          media: {
+            _id: media._id,
+            imdb_id: media.imdb_id,
+            type: media.type,
+            title: media.title,
+            images: { poster: media.images?.poster }
+          }
+        });
+      }
+      setInWatchlist(!inWatchlist);
+    } catch (err) {
+      console.error("Watchlist error:", err);
+    }
+  };
   return (
     <>
       <style>{`
@@ -243,7 +266,7 @@ const handleList = async (e) => {
             {hovered && (
               <motion.button className="mc-btn" initial={{ opacity: 0, scale: 0.7 }}
   animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
-  transition={{ duration: 0.18, delay: 0.05 }} onClick={handleList}
+  transition={{ duration: 0.18, delay: 0.05 }} onClick={handleWatchlist}
   style={{ position: "absolute", bottom: 8, right: 8, width: 28, height: 28, borderRadius: "50%",
     zIndex: 10,
     background: listed ? `${cfg.accent}33` : "rgba(0,0,0,0.65)",

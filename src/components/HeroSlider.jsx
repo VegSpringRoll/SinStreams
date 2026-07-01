@@ -135,6 +135,33 @@ useEffect(() => {
   // navigate(`/watch/${mediaType}/${mediaId}`, { state: { media: slide } });
 };
 
+// Watch List add
+const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
+
+const handleWatchlist = async () => {
+    if (!user) return alert("Please sign in");
+    
+    try {
+      if (inWatchlist) {
+        await axios.delete(`${BACKEND_URL}/user/watchlist/${user.id}/${media._id}`);
+      } else {
+        await axios.post(`${BACKEND_URL}/user/watchlist`, {
+          clerkId: user.id,
+          media: {
+            _id: media._id,
+            imdb_id: media.imdb_id,
+            type: media.type,
+            title: media.title,
+            images: { poster: media.images?.poster }
+          }
+        });
+      }
+      setInWatchlist(!inWatchlist);
+    } catch (err) {
+      console.error("Watchlist error:", err);
+    }
+  };
+
   const handleMore  = () => {
     console.log("More info for:", slide.title);
   };
@@ -359,7 +386,7 @@ useEffect(() => {
 
                 <button
                   className="hs-btn"
-                  onClick={handleList}
+                  onClick={handleWatchlist}
                   style={{
                     padding: "13px 22px",
                     borderRadius: 9,
@@ -375,7 +402,7 @@ useEffect(() => {
 
                 <button
                   className="hs-btn"
-                  onClick={handleMore}
+                  onClick={handleWatch}
                   style={{
                     padding: "13px 22px",
                     borderRadius: 9,
