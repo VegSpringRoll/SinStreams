@@ -19,8 +19,6 @@ export default function MyList() {
     }
   }, [user, isSignedIn]);
 
-  const { getToken } = useAuth();
-
 const fetchWatchlist = async () => {
   try {
     setLoading(true);
