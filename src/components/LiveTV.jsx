@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const BACKEND_URL = import.meta.env.PROD 
-  ? "https://sin-streams.vercel.app" 
-  : "http://localhost:5000/api";
+const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api"
 
 export default function LiveTV() {
   const [channels, setChannels] = useState([]);
