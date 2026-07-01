@@ -225,7 +225,7 @@ const handleList = async (e) => {
             {hovered && (
               <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.7 }} transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+                style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" , zIndex:8}}>
                 <div onClick={handlePlay}
                   style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.18)",
                     border: "2px solid rgba(255,255,255,0.55)", display: "flex", alignItems: "center",
@@ -242,14 +242,15 @@ const handleList = async (e) => {
           <AnimatePresence>
             {hovered && (
               <motion.button className="mc-btn" initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
-                transition={{ duration: 0.18, delay: 0.05 }} onClick={handleList}
-                style={{ position: "absolute", bottom: 8, right: 8, width: 28, height: 28, borderRadius: "50%",
-                  background: listed ? `${cfg.accent}33` : "rgba(0,0,0,0.65)",
-                  border: listed ? `1.5px solid ${cfg.accent}` : "1.5px solid rgba(255,255,255,0.3)",
-                  backdropFilter: "blur(2px)", color: listed ? cfg.accent : "white" }}>
-                {listed ? <Check size={13} strokeWidth={2.5} /> : <Plus size={13} strokeWidth={2.5} />}
-              </motion.button>
+  animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
+  transition={{ duration: 0.18, delay: 0.05 }} onClick={handleList}
+  style={{ position: "absolute", bottom: 8, right: 8, width: 28, height: 28, borderRadius: "50%",
+    zIndex: 10,
+    background: listed ? `${cfg.accent}33` : "rgba(0,0,0,0.65)",
+    border: listed ? `1.5px solid ${cfg.accent}` : "1.5px solid rgba(255,255,255,0.3)",
+    backdropFilter: "blur(2px)", color: listed ? cfg.accent : "white" }}>
+  {listed ? <Check size={13} strokeWidth={2.5} /> : <Plus size={13} strokeWidth={2.5} />}
+</motion.button>
             )}
           </AnimatePresence>
         </motion.div>
