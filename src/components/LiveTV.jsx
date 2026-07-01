@@ -54,8 +54,6 @@ const CHANNELS = [
 
 const CATEGORIES = [...new Set(CHANNELS.map(c => c.category))];
 
-const CATEGORIES = [...new Set(CHANNELS.map(c => c.category))];
-
 export default function LiveTV() {
   const [selectedChannel, setSelectedChannel] = useState(CHANNELS[0]);
   const [activeCategory, setActiveCategory] = useState("All");
