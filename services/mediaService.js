@@ -107,44 +107,24 @@ export const getStreamSources = (imdbId, type = 'movie', season = 1, episode = 1
 };
 
 // ─── WATCHLIST OPERATIONS ───
-export const addToWatchlist = async (token, media) => {
-  try {
-    const { data } = await axios.post(
-      `${BACKEND_URL}/user/watchlist`,
-      { media },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return data;
-  } catch (err) {
-    console.error("Add to watchlist error:", err.message);
-    throw err;
-  }
+export const addToWatchlist = async (clerkId, media) => {
+  const { data } = await axios.post(`${BACKEND_URL}/user/watchlist`, {
+    clerkId,
+    media
+  });
+  return data;
 };
 
-export const getWatchlist = async (token) => {
-  try {
-    const { data } = await axios.get(
-      `${BACKEND_URL}/user/watchlist`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return data;
-  } catch (err) {
-    console.error("Get watchlist error:", err.message);
-    return [];
-  }
+export const getWatchlist = async (clerkId) => {
+  const { data } = await axios.get(`${BACKEND_URL}/user/watchlist`, {
+    params: { clerkId }
+  });
+  return data;
 };
 
-export const removeFromWatchlist = async (token, mediaId) => {
-  try {
-    const { data } = await axios.delete(
-      `${BACKEND_URL}/user/watchlist/${mediaId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return data;
-  } catch (err) {
-    console.error("Remove from watchlist error:", err.message);
-    throw err;
-  }
+export const removeFromWatchlist = async (mediaId) => {
+  const { data } = await axios.delete(`${BACKEND_URL}/user/watchlist/${mediaId}`);
+  return data;
 };
 
 // ─── GET MOVIE STREAM ───

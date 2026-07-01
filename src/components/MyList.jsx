@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useUser , useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import { getWatchlist, removeFromWatchlist } from '../../services/mediaService';
 import MediaCard from './MediaCard';
 import VideoPlayer from './VideoPlayer';
@@ -24,9 +24,7 @@ export default function MyList() {
 const fetchWatchlist = async () => {
   try {
     setLoading(true);
-    const token = await getToken();
-    if (!token) return; // wait for Clerk to be ready
-    const data = await getWatchlist(token);
+    const data = await getWatchlist(user.id);
     setWatchlist(data || []);
   } catch (err) {
     console.error("Failed to fetch watchlist:", err);
@@ -34,10 +32,10 @@ const fetchWatchlist = async () => {
     setLoading(false);
   }
 };
+
 const handleRemove = async (mediaId) => {
   try {
-    const token = await getToken(); // ← get Clerk JWT
-    await removeFromWatchlist(token, mediaId);
+    await removeFromWatchlist(mediaId);
     setWatchlist(prev => prev.filter(item => item._id !== mediaId));
   } catch (err) {
     console.error("Failed to remove:", err);
