@@ -24,7 +24,8 @@ export default function MyList() {
 const fetchWatchlist = async () => {
   try {
     setLoading(true);
-    const token = await getToken(); // ← get Clerk JWT
+    const token = await getToken();
+    if (!token) return; // wait for Clerk to be ready
     const data = await getWatchlist(token);
     setWatchlist(data || []);
   } catch (err) {
@@ -33,7 +34,6 @@ const fetchWatchlist = async () => {
     setLoading(false);
   }
 };
-
 const handleRemove = async (mediaId) => {
   try {
     const token = await getToken(); // ← get Clerk JWT

@@ -98,13 +98,18 @@ export default function MediaCard({
   const { getToken } = useAuth();
   const handleList = async (e) => {
   e.stopPropagation();
-  if (!user) { alert("Please sign in to add to your list"); return; }
+  if (!user) { alert("Please sign in"); return; }
+
+  const token = await getToken();
+  if (!token) {
+    console.error("No auth token yet, try again");
+    return; // ← don't even try if token isn't ready
+  }
 
   const mediaId = media._id || media.imdb_id || id;
   setListed(v => !v);
 
   try {
-    const token = await getToken(); // ← get Clerk JWT
     if (!listed) {
       await addToWatchlist(token, {
         _id: mediaId,
@@ -119,7 +124,7 @@ export default function MediaCard({
     onAddList?.(id);
   } catch (err) {
     console.error("Watchlist error:", err.response?.data || err.message);
-    setListed(v => !v); // revert on failure
+    setListed(v => !v);
   }
 };
 
