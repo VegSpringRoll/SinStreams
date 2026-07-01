@@ -26,7 +26,8 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ 
   origin: "https://sin-streams.vercel.app", 
   credentials: true,
-  exposedHeaders: ["Content-Range", "Accept-Ranges", "Content-Length"]
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length'],
 }));
 
 app.use(
