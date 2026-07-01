@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser , useAuth } from '@clerk/clerk-react';
 import { getWatchlist, removeFromWatchlist } from '../../services/mediaService';
 import MediaCard from './MediaCard';
 import VideoPlayer from './VideoPlayer';
@@ -19,24 +19,26 @@ export default function MyList() {
     }
   }, [user, isSignedIn]);
 
-  const fetchWatchlist = async () => {
-    try {
-      setLoading(true);
-      const data = await getWatchlist(user.id);
-      console.log("Watchlist loaded:", data?.length, "items");
-      setWatchlist(data || []);
-    } catch (err) {
-      console.error("Failed to fetch watchlist:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { getToken } = useAuth();
 
-  const handleRemove = async (mediaId) => {
+const fetchWatchlist = async () => {
   try {
-    await removeFromWatchlist(mediaId);
+    setLoading(true);
+    const token = await getToken(); // ← get Clerk JWT
+    const data = await getWatchlist(token);
+    setWatchlist(data || []);
+  } catch (err) {
+    console.error("Failed to fetch watchlist:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleRemove = async (mediaId) => {
+  try {
+    const token = await getToken(); // ← get Clerk JWT
+    await removeFromWatchlist(token, mediaId);
     setWatchlist(prev => prev.filter(item => item._id !== mediaId));
-    console.log("Removed from watchlist:", mediaId);
   } catch (err) {
     console.error("Failed to remove:", err);
   }

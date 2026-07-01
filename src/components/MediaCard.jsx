@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Plus, Check, Star, Clock } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser , useAuth } from "@clerk/clerk-react";
 
 // Type config
 const TYPE_CONFIG = {
@@ -95,38 +95,33 @@ export default function MediaCard({
   const { user } = useUser();
 
   // 📝 Watchlist toggle
+  const { getToken } = useAuth();
   const handleList = async (e) => {
-    e.stopPropagation();
+  e.stopPropagation();
+  if (!user) { alert("Please sign in to add to your list"); return; }
 
-    if (!user) {
-      alert("Please sign in to add to your list");
-      return;
+  const mediaId = media._id || media.imdb_id || id;
+  setListed(v => !v);
+
+  try {
+    const token = await getToken(); // ← get Clerk JWT
+    if (!listed) {
+      await addToWatchlist(token, {
+        _id: mediaId,
+        imdb_id: media.imdb_id,
+        type,
+        title: media.title,
+        images: { poster: media.images?.poster || null }
+      });
+    } else {
+      await removeFromWatchlist(token, mediaId);
     }
-
-    const mediaId = getMediaId();
-    setListed(v => !v);
-
-    try {
-      if (!listed) {
-        await axios.post("http://localhost:5000/api/user/watchlist", {
-          clerkId: user.id,
-          media: {
-            _id: mediaId,
-            imdb_id: media.imdb_id,
-            type: type,
-            title: media.title,
-            images: { poster: media.images?.poster || null }
-          }
-        });
-      } else {
-        await axios.delete(`http://localhost:5000/api/user/watchlist/${user.id}/${mediaId}`);
-      }
-      onAddList?.(id);
-    } catch (err) {
-      console.error("Watchlist error:", err.response?.data || err.message);
-      setListed(v => !v);
-    }
-  };
+    onAddList?.(id);
+  } catch (err) {
+    console.error("Watchlist error:", err.response?.data || err.message);
+    setListed(v => !v); // revert on failure
+  }
+};
 
   const hue = title.charCodeAt(0) % 360;
   const hue2 = (hue + 40) % 360;
