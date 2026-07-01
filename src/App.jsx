@@ -7,6 +7,7 @@ import Movies from './components/Movies'
 import MyList from './components/MyList'
 import Series from './components/Series'
 import Details from './components/details'
+import LiveTV from './components/LiveTV'
 function App() {
   return (
     <>
@@ -19,6 +20,7 @@ function App() {
         <Route path="/details/:type/:id" element={<Details />} />
         <Route path="/watch/:type/:id" element={<Watch />} />
         <Route path="/series" element={<Series />} />
+        <Route path="/live-tv" element={<LiveTV />} />
       </Routes>
     </>
   )

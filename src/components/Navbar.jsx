@@ -4,10 +4,12 @@ import { useUser, useClerk, SignInButton } from "@clerk/clerk-react";
 import { Search, X, Film, Tv, Sword, Bookmark, ChevronDown, LogOut, User, Settings, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { searchMedia } from "../../services/mediaService";
+import { Tv } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Movies",  path: "/movies",  icon: Film },
   { label: "Series",  path: "/series",  icon: Tv },
+  { label: "Live TV", path: "/live-tv", icon: Tv },
   { label: "My List", path: "/mylist",  icon: Bookmark },
 ];
 
