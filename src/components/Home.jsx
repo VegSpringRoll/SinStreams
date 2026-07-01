@@ -48,15 +48,10 @@ export default function Home() {
   };
 
   // UPI functions
-  const UPI_ID = 'https://www.youtube.com/@uttkarshUwU'; 
-  const copyUPI = () => {
-    navigator.clipboard.writeText(UPI_ID);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const Message = 'Become a Supporter ^_^'; 
 
   const openUPIApp = (amount = 10) => {
-    const upiLink = `upi://pay?pa=${UPI_ID}&pn=StreamHub&tn=Donation&am=${amount}&cu=INR`;
+    const upiLink = `upi://pay?pa=${Message}&pn=StreamHub&tn=Donation&am=${amount}&cu=INR`;
     window.open(upiLink, '_blank');
   };
 
@@ -395,23 +390,8 @@ export default function Home() {
                     fontSize: 13,
                     fontFamily: "monospace",
                   }}>
-                    {UPI_ID}
+                    {Message}
                   </code>
-                  <button
-                    onClick={copyUPI}
-                    style={{
-                      background: "rgba(255,255,255,0.1)",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "5px 12px",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    {copied ? '✅ Copied!' : '📋 Copy'}
-                  </button>
                 </div>
 
                 {/* Quick Pay Buttons */}
