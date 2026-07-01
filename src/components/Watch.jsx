@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import MediaCard from "../components/MediaCard";
 import { Star, Clock, Calendar, ArrowLeft, Play, Monitor } from "lucide-react";
+import { getMovies , getShows} from "../../services/mediaService"
 
 const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
@@ -190,21 +191,15 @@ export default function Watch() {
   try {
     setLoadingRecs(true);
     
-    // Use your deployed backend URL
-    const BACKEND_URL = import.meta.env.PROD 
-      ? "https://sin-streams.vercel.app/"  // Replace with your actual backend URL
-      : "http://localhost:5000/api";
-    
-    const [moviesRes, seriesRes] = await Promise.all([
-      axios.get(`${BACKEND_URL}/media/movies`).catch(() => ({ data: [] })),
-      axios.get(`${BACKEND_URL}/media/series`).catch(() => ({ data: [] }))
+    const [movies, series] = await Promise.all([
+      getMovies(),
+      getShows()
     ]);
-    
-    // Combine and filter out current media
-    let recs = [...(moviesRes.data || []), ...(seriesRes.data || [])]
+
+    const recs = [...(movies || []), ...(series || [])]
       .filter(m => m._id !== media._id && m.imdb_id !== media.imdb_id)
       .slice(0, 12);
-    
+
     setRecommendations(recs);
   } catch (err) {
     console.error("Recommendations error:", err);
