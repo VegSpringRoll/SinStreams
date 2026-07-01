@@ -95,7 +95,6 @@ export default function MediaCard({
   const { user } = useUser();
 
   // 📝 Watchlist toggle
-  const { getToken } = useAuth();
 const handleList = async (e) => {
   e.stopPropagation();
   if (!user) { alert("Please sign in"); return; }
