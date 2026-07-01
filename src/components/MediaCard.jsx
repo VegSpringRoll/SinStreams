@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Plus, Check, Star, Clock } from "lucide-react";
-import { useUser , useAuth } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 
 // Type config
 const TYPE_CONFIG = {
@@ -96,22 +96,16 @@ export default function MediaCard({
 
   // 📝 Watchlist toggle
   const { getToken } = useAuth();
-  const handleList = async (e) => {
+const handleList = async (e) => {
   e.stopPropagation();
   if (!user) { alert("Please sign in"); return; }
-
-  const token = await getToken();
-  if (!token) {
-    console.error("No auth token yet, try again");
-    return; // ← don't even try if token isn't ready
-  }
 
   const mediaId = media._id || media.imdb_id || id;
   setListed(v => !v);
 
   try {
     if (!listed) {
-      await addToWatchlist(token, {
+      await addToWatchlist(user.id, {
         _id: mediaId,
         imdb_id: media.imdb_id,
         type,
@@ -119,7 +113,7 @@ export default function MediaCard({
         images: { poster: media.images?.poster || null }
       });
     } else {
-      await removeFromWatchlist(token, mediaId);
+      await removeFromWatchlist(mediaId);
     }
     onAddList?.(id);
   } catch (err) {
