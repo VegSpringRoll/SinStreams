@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import axios from "axios";
 import proxyRoutes from "./routes/proxy.js"
+import liveTvRoutes from "./routes/livetv.js"
 // Load environment variables FIRST
 dotenv.config();
 
@@ -69,6 +70,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/stream", streamRoutes);
 app.use("/api/proxy", proxyRoutes);
+app.use("/api/livetv", liveTvRoutes);
 
 // TEST ROUTES
 app.get('/api/test/db', async (req, res) => {
