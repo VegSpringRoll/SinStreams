@@ -409,4 +409,6 @@ const spinner = { width: 36, height: 36, borderRadius: '50%', border: `3px solid
 const retryBtn = { padding: '9px 20px', background: ACCENT_DIM, color: ACCENT, border: `1px solid ${ACCENT}44`, borderRadius: 8, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600 };
 const keyframes = `
   @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 6px #e509
+  @keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 6px #e50914; } 50% { opacity: 0.5; box-shadow: 0 0 2px #e50914; } }
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 4px; }
+`;
