@@ -22,7 +22,9 @@ const FEATURED_GENRES = [
 
 // ── genre filter helper ────────────────────────────────────────────────────────
 function matchGenre(genres, name) {
-  const g = genres.map(x => x.toLowerCase());
+  const g = (genres || [])
+    .filter(x => typeof x === 'string')
+    .map(x => x.toLowerCase());
   if (name === 'Action & Adventure')
     return g.some(x => x.includes('action') || x.includes('adventure'));
   if (name === 'Sci-Fi & Fantasy')
@@ -137,7 +139,7 @@ export default function Series() {
     return series
       .filter(s =>
         s.title?.toLowerCase().includes(q) ||
-        (s.genres || []).some(g => g.toLowerCase().includes(q))
+        (s.genres || []).some(g => typeof g === 'string' && g.toLowerCase().includes(q))
       )
       .slice(0, 40);
   }, [series, search]);

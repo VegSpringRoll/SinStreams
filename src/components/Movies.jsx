@@ -114,7 +114,7 @@ export default function Movies() {
           .slice(0, 20);
       } else {
         groups[name] = movies
-          .filter(m => (m.genres || []).some(g => g.toLowerCase() === name.toLowerCase()))
+          .filter(m => (m.genres || []).some(g => typeof g === 'string' && g.toLowerCase() === name.toLowerCase()))
           .slice(0, 20);
       }
     });
@@ -127,7 +127,7 @@ export default function Movies() {
     return movies
       .filter(m =>
         m.title?.toLowerCase().includes(q) ||
-        (m.genres || []).some(g => g.toLowerCase().includes(q))
+        (m.genres || []).some(g => typeof g === 'string' && g.toLowerCase().includes(q))
       )
       .slice(0, 40);
   }, [movies, search]);
@@ -168,7 +168,7 @@ export default function Movies() {
   if (showAll && activeGenre) {
     const displayMovies = activeGenre === 'Trending Now'
       ? allMoviesSorted
-      : movies.filter(m => (m.genres || []).some(g => g.toLowerCase() === activeGenre.toLowerCase()));
+      : movies.filter(m => (m.genres || []).some(g => typeof g === 'string' && g.toLowerCase() === activeGenre.toLowerCase()));
 
     return (
       <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
