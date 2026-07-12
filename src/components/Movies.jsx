@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MediaCard from './MediaCard';
 import { getMovies, getMoviesByGenre } from '../../services/mediaService';
-import { Film, ChevronRight, ChevronLeft, TrendingUp, Zap, Laugh, Rocket, Ghost, Heart, Drama, Flame, Sparkles, Compass } from 'lucide-react';
+import {
+  Film, ChevronRight, ChevronLeft, TrendingUp, Zap, Laugh, Rocket, Ghost,
+  Heart, Drama, Flame, Sparkles, Compass, Shuffle
+} from 'lucide-react';
 
 const ACCENT      = '#e8b84b';
 const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
@@ -20,6 +24,78 @@ const FEATURED_GENRES = [
   { name: 'Animation',      icon: Sparkles,   gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
   { name: 'Adventure',      icon: Compass,    gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 12 },
 ];
+
+// ── Randomizer — "Surprise Me" hero section with a slot-machine style shuffle ──
+function Randomizer({ pool, isMobile, navigate }) {
+  const [previewItem, setPreviewItem] = useState(null);
+  const [shuffling, setShuffling] = useState(false);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (!previewItem && pool.length > 0) {
+      setPreviewItem(pool[Math.floor(Math.random() * pool.length)]);
+    }
+  }, [pool, previewItem]);
+
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
+
+  const handleRandomize = () => {
+    if (shuffling || pool.length === 0) return;
+    setShuffling(true);
+
+    let ticks = 0;
+    const maxTicks = 12;
+    intervalRef.current = setInterval(() => {
+      ticks += 1;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      setPreviewItem(pick);
+
+      if (ticks >= maxTicks) {
+        clearInterval(intervalRef.current);
+        setShuffling(false);
+        // Adjust this path if your router uses a different details route.
+        navigate(`/details/movie/${pick._id}`);
+      }
+    }, 85);
+  };
+
+  return (
+    <div className="mv-randomizer">
+      <div className="mv-randomizer-preview">
+        {previewItem?.images?.poster ? (
+          <img
+            src={previewItem.images.poster}
+            alt=""
+            className={shuffling ? 'mv-shuffling' : ''}
+          />
+        ) : (
+          <div className="mv-randomizer-placeholder"><Film size={26} /></div>
+        )}
+      </div>
+
+      <div className="mv-randomizer-info">
+        <div className="mv-randomizer-eyebrow">
+          <Shuffle size={13} />
+          <span>Can't decide?</span>
+        </div>
+        <h2>Surprise Me</h2>
+        {!isMobile && (
+          <p>{previewItem ? previewItem.title : 'Let us pick something great for you to watch.'}</p>
+        )}
+        <button
+          onClick={handleRandomize}
+          disabled={shuffling || pool.length === 0}
+          className="mv-randomizer-btn"
+        >
+          <Shuffle size={16} className={shuffling ? 'mv-spin' : ''} />
+          {shuffling ? 'Shuffling…' : 'Randomize'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ── MovieRow — Netflix-style horizontal row with hover-zoom + scroll arrows ───
 function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onSeeAll, isMobile }) {
@@ -110,6 +186,7 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function Movies() {
+  const navigate = useNavigate();
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [genrePools,     setGenrePools]     = useState({});
   const [loading,        setLoading]        = useState(true);
@@ -170,6 +247,15 @@ export default function Movies() {
     'Trending Now': trendingSorted,
     ...genrePools,
   }), [trendingSorted, genrePools]);
+
+  // Deduplicated pool of every movie loaded across all rows, used by the randomizer.
+  const allMoviesPool = useMemo(() => {
+    const map = new Map();
+    [...trendingSorted, ...Object.values(genrePools).flat()].forEach(m => {
+      if (m && m._id) map.set(m._id, m);
+    });
+    return Array.from(map.values());
+  }, [trendingSorted, genrePools]);
 
   const handleSeeAll = (genre) => { setActiveGenre(genre); setShowAll(true); };
   const handleBack   = ()      => { setShowAll(false); setActiveGenre(null); };
@@ -236,23 +322,15 @@ export default function Movies() {
         padding: isMobile ? '24px 16px 20px' : '36px 32px 28px',
         borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Film size={16} color={ACCENT} strokeWidth={1.5} />
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 600,
-                color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.14em' }}>Collection</span>
-            </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif",
-              fontSize: isMobile ? 34 : 'clamp(32px, 4vw, 48px)', fontWeight: 900,
-              color: '#e8eaf0', margin: 0, letterSpacing: '-1px' }}>Movies</h1>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: ACCENT }}>{trendingMovies.length}</div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: '#3a4560', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total</div>
-          </div>
-        </div>
+        <h1 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: isMobile ? 34 : 'clamp(32px, 4vw, 48px)', fontWeight: 900,
+          color: '#e8eaf0', margin: 0, letterSpacing: '-1px',
+        }}>Movies</h1>
       </div>
+
+      {/* Randomizer */}
+      <Randomizer pool={allMoviesPool} isMobile={isMobile} navigate={navigate} />
 
       {/* Genre Rows */}
       <div style={{ paddingBottom: 60 }}>
@@ -321,4 +399,61 @@ const CSS = `
   ::-webkit-scrollbar { height: 3px; width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 4px; }
+
+  /* ── Randomizer ── */
+  .mv-randomizer {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 8px 32px 40px;
+    padding: 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(232,184,75,0.09), rgba(224,95,160,0.06));
+    border: 1px solid rgba(232,184,75,0.18);
+  }
+  .mv-randomizer-preview {
+    width: 90px; height: 130px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mv-randomizer-preview img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.08s ease; }
+  .mv-randomizer-placeholder { color: #3a4560; }
+  .mv-randomizer-info { flex: 1; min-width: 0; }
+  .mv-randomizer-eyebrow {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+    color: #e8b84b; text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .mv-randomizer-info h2 {
+    font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900;
+    color: #e8eaf0; margin: 0 0 4px;
+  }
+  .mv-randomizer-info p {
+    font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6878a0;
+    margin: 0 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mv-randomizer-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: #e8b84b; color: #080c14; border: none; border-radius: 8px;
+    padding: 11px 22px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .mv-randomizer-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .mv-randomizer-btn:disabled { opacity: 0.5; cursor: default; }
+  @keyframes mv-spin { to { transform: rotate(360deg); } }
+  .mv-spin { animation: mv-spin 0.6s linear infinite; }
+  .mv-shuffling { opacity: 0.55; }
+
+  @media (max-width: 768px) {
+    .mv-randomizer { margin: 4px 16px 28px; padding: 16px; gap: 16px; }
+    .mv-randomizer-preview { width: 66px; height: 96px; }
+    .mv-randomizer-info h2 { font-size: 18px; }
+    .mv-randomizer-btn { padding: 10px 16px; font-size: 13px; width: 100%; justify-content: center; }
+  }
+
+  @media (max-width: 420px) {
+    .mv-randomizer { flex-direction: column; align-items: stretch; }
+    .mv-randomizer-preview { width: 100%; height: 150px; }
+  }
 `;
