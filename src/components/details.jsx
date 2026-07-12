@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Play, Plus, Check, Star, Clock, Calendar, Film, Tv,
-  X, Youtube, Globe, Users, DollarSign, ExternalLink
+  X, Video, Globe, Users, DollarSign, ExternalLink
 } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 
@@ -330,7 +330,7 @@ export default function Details() {
 
                 {media.trailerKey && (
                   <button onClick={() => setShowTrailer(true)} style={styles.trailerBtn} className="details-trailer-btn">
-                    <Youtube size={19} /> Trailer
+                    <Video size={19} /> Trailer
                   </button>
                 )}
 
