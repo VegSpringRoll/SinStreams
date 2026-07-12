@@ -142,7 +142,7 @@ const handleResultClick = (result) => {
         .sin-desktop-links { display: flex; }
 .sin-dev-credit { display: flex; }
 .sin-mobile-toggle { display: none; flex-shrink: 0; }
-.sin-navbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.sin-navbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: auto; }
 .sin-profile-name { display: inline; }
 .sin-profile-chevron { display: inline-flex; }
 
@@ -229,7 +229,7 @@ const handleResultClick = (result) => {
         style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
           height: 68,
-          display: "flex", alignItems: "center",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
           background: scrolled
             ? "rgba(8,12,20,0.96)"
             : "linear-gradient(to bottom, rgba(8,12,20,0.95) 0%, rgba(8,12,20,0.5) 70%, transparent)",

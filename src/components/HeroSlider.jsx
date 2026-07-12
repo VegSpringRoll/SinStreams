@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Plus, Check, Info, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { Play, Plus, Check, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // ─── Type config ──────────────────────────────────────────────────────────────
@@ -60,7 +60,6 @@ export default function HeroSlider({
   const [prev,      setPrev]      = useState(null);
   const [direction, setDirection] = useState(1);
   const [paused,    setPaused]    = useState(false);
-  const [muted,     setMuted]     = useState(true);
   const [imgLoaded, setImgLoaded] = useState({});
   const [progress,  setProgress]  = useState(0);
   const intervalRef = useRef(null);
@@ -365,18 +364,20 @@ const handleWatchlist = async () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.4 }}
-                style={{ display: "flex", gap: 12, alignItems: "center" }}
+                style={{ display: "flex", gap: isMobile ? 10 : 12, alignItems: "stretch", flexWrap: "wrap" }}
               >
                 {/* Watch Now - Opens VideoPlayer */}
                 <button
-                  className="hs-buttons"
+                  className="hs-btn"
                   onClick={handleWatch}
                   style={{
-                    padding: "13px 28px",
+                    padding: isMobile ? "12px 20px" : "13px 28px",
+                    height: isMobile ? 44 : 48,
                     borderRadius: 9,
                     background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}cc)`,
                     color: "#0a0a0a",
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
+                    whiteSpace: "nowrap",
                     boxShadow: `0 8px 24px ${cfg.glow}`,
                   }}
                 >
@@ -388,12 +389,14 @@ const handleWatchlist = async () => {
                   className="hs-btn"
                   onClick={handleWatchlist}
                   style={{
-                    padding: "13px 22px",
+                    padding: isMobile ? "12px 16px" : "13px 22px",
+                    height: isMobile ? 44 : 48,
                     borderRadius: 9,
                     background: inList ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.07)",
                     border: inList ? `1px solid ${cfg.accent}66` : "1px solid rgba(255,255,255,0.12)",
                     color: inList ? cfg.accent : "#8892a4",
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {inList ? <Check size={15} /> : <Plus size={15} />}
@@ -404,12 +407,14 @@ const handleWatchlist = async () => {
                   className="hs-btn"
                   onClick={handleWatch}
                   style={{
-                    padding: "13px 22px",
+                    padding: isMobile ? "12px 16px" : "13px 22px",
+                    height: isMobile ? 44 : 48,
                     borderRadius: 9,
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.08)",
                     color: "#6878a0",
-                    fontSize: 14,
+                    fontSize: isMobile ? 13 : 14,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <Info size={15} />
@@ -496,15 +501,6 @@ const handleWatchlist = async () => {
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#3a4560", marginLeft: 4 }}>
             {String(current + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
           </span>
-
-          <button
-            className="hs-arrow"
-            onClick={() => setMuted(v => !v)}
-            style={{ width: 34, height: 34, marginLeft: "auto" }}
-            title={muted ? "Unmute" : "Mute"}
-          >
-            {muted ? <VolumeX size={14} color="#4a5568" /> : <Volume2 size={14} color="#8892a4" />}
-          </button>
         </div>
 
         <div style={{
