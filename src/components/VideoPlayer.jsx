@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Maximize } from 'lucide-react';
+import { Maximize, Minimize } from 'lucide-react';
 
 const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
@@ -11,14 +11,33 @@ export default function VideoPlayer({ media, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const iframeRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleFullscreen = () => {
     const el = iframeRef.current;
     if (!el) return;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
-    else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
+      else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    }
   };
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    };
+  }, []);
 
   // Direct video state
   const [directUrl, setDirectUrl] = useState(null);
@@ -180,7 +199,7 @@ export default function VideoPlayer({ media, onClose }) {
 
       // #3 - VIDSRC (Needs imdbId, fallback to anyId)
       sources.push({
-        name: 'VIP👑',
+        name: 'Fastest⚡',
         url: isSeries 
           ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` 
           : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
@@ -374,8 +393,8 @@ export default function VideoPlayer({ media, onClose }) {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 title={media.title}
               />
-              <button onClick={handleFullscreen} title="Fullscreen" style={styles.fullscreenBtn}>
-                <Maximize size={16} />
+              <button onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} style={styles.fullscreenBtn}>
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
             </>
           )}
