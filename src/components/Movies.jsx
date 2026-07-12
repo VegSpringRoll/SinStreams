@@ -6,6 +6,26 @@ import { Film, ChevronRight, ChevronLeft, TrendingUp, Zap } from 'lucide-react';
 const ACCENT      = '#e8b84b';
 const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
 
+// Normalizes whatever shape genres come in (array of strings, array of
+// {name}/{genre}/{title} objects, comma-separated string, or a singular
+// `genre` field) into a flat lowercase array of trimmed strings.
+function getGenreList(media) {
+  const raw = media?.genres ?? media?.genre ?? [];
+  const arr = Array.isArray(raw) ? raw : String(raw).split(',');
+  return arr
+    .map(g => {
+      if (typeof g === 'string') return g;
+      if (g && typeof g === 'object') return g.name || g.genre || g.title || '';
+      return '';
+    })
+    .map(g => g.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function matchesGenre(media, name) {
+  return getGenreList(media).some(g => g === name.toLowerCase());
+}
+
 const FEATURED_GENRES = [
   { name: 'Trending Now',   icon: TrendingUp, gradient: 'linear-gradient(135deg, #e8b84b, #e05fa0)' },
   { name: 'Action',         icon: Zap,        gradient: 'linear-gradient(135deg, #ff4444, #cc0000)' },
@@ -142,7 +162,7 @@ export default function Movies() {
           .slice(0, 20);
       } else {
         groups[name] = movies
-          .filter(m => (m.genres || []).some(g => typeof g === 'string' && g.toLowerCase() === name.toLowerCase()))
+          .filter(m => matchesGenre(m, name))
           .slice(0, 20);
       }
     });
@@ -183,7 +203,7 @@ export default function Movies() {
   if (showAll && activeGenre) {
     const displayMovies = activeGenre === 'Trending Now'
       ? allMoviesSorted
-      : movies.filter(m => (m.genres || []).some(g => typeof g === 'string' && g.toLowerCase() === activeGenre.toLowerCase()));
+      : movies.filter(m => matchesGenre(m, activeGenre));
 
     return (
       <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>

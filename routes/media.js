@@ -4,6 +4,32 @@ import { getTrendingMovies, getPopularTVShows, getMovieDetails, getTVDetails } f
 
 const router = express.Router();
 
+// ─── TMDB genre_ids are numbers, not names — map them to strings ───
+// (Names match TMDB's official genre list, which also lines up with the
+// FEATURED_GENRES labels used on the frontend.)
+const MOVIE_GENRE_MAP = {
+  28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
+  99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History",
+  27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance",
+  878: "Science Fiction", 10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western"
+};
+
+const TV_GENRE_MAP = {
+  10759: "Action & Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
+  99: "Documentary", 18: "Drama", 10751: "Family", 10762: "Kids", 9648: "Mystery",
+  10763: "News", 10764: "Reality", 10765: "Sci-Fi & Fantasy", 10766: "Soap",
+  10767: "Talk", 10768: "War & Politics", 37: "Western"
+};
+
+// Converts an array that may contain TMDB numeric genre_ids, genre name
+// strings, or a mix of both, into a clean array of genre name strings.
+function toGenreNames(genreIds, map) {
+  if (!Array.isArray(genreIds)) return [];
+  return genreIds
+    .map(g => (typeof g === "number" ? map[g] : g))
+    .filter(Boolean);
+}
+
 // 🎬 GET TRENDING MOVIES - WITH IMDB IDs
 router.get('/movies', async (req, res) => {
   try {
@@ -57,7 +83,7 @@ router.get('/movies', async (req, res) => {
               : null
           },
           synopsis: movie.overview || "No description available.",
-          genres: movie.genre_ids || [],
+          genres: toGenreNames(movie.genre_ids, MOVIE_GENRE_MAP),
           runtime: null,
           releaseDate: movie.release_date
         };
@@ -131,7 +157,7 @@ router.get('/series', async (req, res) => {
               : null
           },
           synopsis: show.overview || "No description available.",
-          genres: show.genre_ids || [],
+          genres: toGenreNames(show.genre_ids, TV_GENRE_MAP),
           runtime: null,
           firstAirDate: show.first_air_date
         };
@@ -252,7 +278,7 @@ router.get('/search', async (req, res) => {
             : null
         },
         synopsis: item.overview || "No description available.",
-        genres: item.genre_ids || [],
+        genres: toGenreNames(item.genre_ids, item.media_type === "movie" ? MOVIE_GENRE_MAP : TV_GENRE_MAP),
         runtime: null
       }));
     
@@ -430,7 +456,7 @@ router.get('/movies/genre/:genreId', async (req, res) => {
           : null
       },
       synopsis: movie.overview || "No description available.",
-      genres: movie.genre_ids || [],
+      genres: toGenreNames(movie.genre_ids, MOVIE_GENRE_MAP),
       runtime: null,
       releaseDate: movie.release_date
     }));
@@ -478,7 +504,7 @@ router.get('/series/genre/:genreId', async (req, res) => {
           : null
       },
       synopsis: show.overview || "No description available.",
-      genres: show.genre_ids || [],
+      genres: toGenreNames(show.genre_ids, TV_GENRE_MAP),
       runtime: null,
       firstAirDate: show.first_air_date
     }));
@@ -549,7 +575,7 @@ router.get('/movies/popular', async (req, res) => {
           : null
       },
       synopsis: movie.overview || "No description available.",
-      genres: movie.genre_ids || [],
+      genres: toGenreNames(movie.genre_ids, MOVIE_GENRE_MAP),
       runtime: null,
       releaseDate: movie.release_date
     }));
@@ -599,7 +625,7 @@ router.get('/movies/top-rated', async (req, res) => {
           : null
       },
       synopsis: movie.overview || "No description available.",
-      genres: movie.genre_ids || [],
+      genres: toGenreNames(movie.genre_ids, MOVIE_GENRE_MAP),
       runtime: null,
       releaseDate: movie.release_date
     }));

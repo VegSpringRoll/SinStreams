@@ -20,10 +20,24 @@ const FEATURED_GENRES = [
 ];
 
 // ── genre filter helper ────────────────────────────────────────────────────────
-function matchGenre(genres, name) {
-  const g = (genres || [])
-    .filter(x => typeof x === 'string')
-    .map(x => x.toLowerCase());
+// Normalizes whatever shape genres come in (array of strings, array of
+// {name}/{genre}/{title} objects, comma-separated string, or a singular
+// `genre` field) into a flat lowercase array of trimmed strings.
+function getGenreList(media) {
+  const raw = media?.genres ?? media?.genre ?? [];
+  const arr = Array.isArray(raw) ? raw : String(raw).split(',');
+  return arr
+    .map(g => {
+      if (typeof g === 'string') return g;
+      if (g && typeof g === 'object') return g.name || g.genre || g.title || '';
+      return '';
+    })
+    .map(g => g.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function matchGenre(media, name) {
+  const g = getGenreList(media);
   if (name === 'Action & Adventure')
     return g.some(x => x.includes('action') || x.includes('adventure'));
   if (name === 'Sci-Fi & Fantasy')
@@ -154,7 +168,7 @@ export default function Series() {
           .slice(0, 20);
       } else {
         groups[name] = series
-          .filter(s => matchGenre(s.genres || [], name))
+          .filter(s => matchGenre(s, name))
           .slice(0, 20);
       }
     });
@@ -195,7 +209,7 @@ export default function Series() {
   if (showAll && activeGenre) {
     const displayShows = activeGenre === 'Trending Now'
       ? allSeriesSorted
-      : series.filter(s => matchGenre(s.genres || [], activeGenre));
+      : series.filter(s => matchGenre(s, activeGenre));
 
     return (
       <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
