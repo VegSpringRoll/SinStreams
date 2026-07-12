@@ -205,8 +205,8 @@ export default function Watch() {
         sources.push({
           name: 'God👑',
           url: seriesFlag
-            ? `https://vidlux.xyz/embed/tv/${tmdbId}/${season}/${episode}`
-            : `https://vidlux.xyz/embed/movie/${tmdbId}`,
+            ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidcore.net/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }

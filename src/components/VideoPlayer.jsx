@@ -153,9 +153,9 @@ export default function VideoPlayer({ media, onClose }) {
       if (tmdbId) {
         sources.push({
           name: 'God👑',
-          url: seriesFlag
-            ? `https://vidlux.xyz/embed/tv/${tmdbId}/${season}/${episode}`
-            : `https://vidlux.xyz/embed/movie/${tmdbId}`,
+          url: isSeries
+            ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidcore.net/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
@@ -163,7 +163,7 @@ export default function VideoPlayer({ media, onClose }) {
       // #2 - VIDSRC.WTF 
       sources.push({
         name: 'DemiGod👑',
-        url: seriesFlag
+        url: isSeries
           ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
           : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
         quality: 'HD', id: 'vidsrcwtf'
