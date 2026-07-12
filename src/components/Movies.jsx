@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MediaCard from './MediaCard';
 import { getMovies, getMoviesByGenre } from '../../services/mediaService';
-import { Film, ChevronRight, ChevronLeft, TrendingUp, Zap } from 'lucide-react';
+import { Film, ChevronRight, ChevronLeft, TrendingUp, Zap, Laugh, Rocket, Ghost, Heart, Drama, Flame, Sparkles, Compass } from 'lucide-react';
 
 const ACCENT      = '#e8b84b';
 const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
@@ -11,14 +11,14 @@ const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
 const FEATURED_GENRES = [
   { name: 'Trending Now',   icon: TrendingUp, gradient: 'linear-gradient(135deg, #e8b84b, #e05fa0)' },
   { name: 'Action',         icon: Zap,        gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
-  { name: 'Comedy',                           gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Science Fiction',                  gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
-  { name: 'Horror',                           gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
-  { name: 'Romance',                          gradient: 'linear-gradient(135deg, #ec407a, #c2185b)', tmdbId: 10749 },
-  { name: 'Drama',                            gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
-  { name: 'Thriller',                         gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 53 },
-  { name: 'Animation',                        gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
-  { name: 'Adventure',                        gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 12 },
+  { name: 'Comedy',         icon: Laugh,      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Science Fiction',icon: Rocket,     gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
+  { name: 'Horror',         icon: Ghost,      gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
+  { name: 'Romance',        icon: Heart,      gradient: 'linear-gradient(135deg, #ec407a, #c2185b)', tmdbId: 10749 },
+  { name: 'Drama',          icon: Drama,      gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
+  { name: 'Thriller',       icon: Flame,      gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 53 },
+  { name: 'Animation',      icon: Sparkles,   gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
+  { name: 'Adventure',      icon: Compass,    gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 12 },
 ];
 
 // ── MovieRow — Netflix-style horizontal row with hover-zoom + scroll arrows ───
