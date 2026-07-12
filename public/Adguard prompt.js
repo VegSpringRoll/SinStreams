@@ -23,7 +23,10 @@
       '<div id="adguard-prompt-card">' +
       '  <button id="adguard-prompt-close" aria-label="Close">&times;</button>' +
       '  <div id="adguard-prompt-icon">🛡️</div>' +
-      "  <p id=\"adguard-prompt-text\">For the best ads-free experience forever, download the <strong>AdGuard</strong> extension — it just takes seconds :)</p>" +
+      '  <div id="adguard-prompt-body">' +
+      "    <p id=\"adguard-prompt-text\">For the best ads-free experience forever, download the <strong>AdGuard</strong> extension — it just takes seconds :)</p>" +
+      '    <p id="adguard-prompt-note">⚠️ The AD Block may not work on Mobile Devices.</p>' +
+      "  </div>" +
       '  <a id="adguard-prompt-install" href="' +
       INSTALL_URL +
       '" target="_blank" rel="noopener noreferrer">Get AdGuard</a>' +
@@ -44,7 +47,9 @@
       "display:flex;align-items:center;flex-wrap:wrap;gap:12px;" +
       "box-shadow:0 10px 40px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.08);}" +
       "#adguard-prompt-icon{font-size:26px;flex-shrink:0;}" +
-      "#adguard-prompt-text{font-size:13.5px;line-height:1.4;color:#d3d6db;margin:0;flex:1 1 220px;}" +
+      "#adguard-prompt-body{flex:1 1 220px;}" +
+      "#adguard-prompt-text{font-size:13.5px;line-height:1.4;color:#d3d6db;margin:0 0 4px;}" +
+      "#adguard-prompt-note{font-size:11.5px;line-height:1.3;color:#c9a24b;margin:0;}" +
       "#adguard-prompt-install{flex-shrink:0;background:#68b84e;color:#0a0c10;" +
       "font-weight:600;text-decoration:none;padding:9px 14px;border-radius:7px;" +
       "font-size:13.5px;white-space:nowrap;transition:filter .15s;}" +
