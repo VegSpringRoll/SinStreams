@@ -1,11 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import MediaCard from './MediaCard';
 import { getMovies } from '../../services/mediaService';
-import { Film, Search, ChevronRight, ChevronLeft, TrendingUp, Zap } from 'lucide-react';
+import { Film, ChevronRight, ChevronLeft, TrendingUp, Zap } from 'lucide-react';
 
 const ACCENT      = '#e8b84b';
 const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
-const ACCENT_GLOW = 'rgba(232,184,75,0.2)';
 
 const FEATURED_GENRES = [
   { name: 'Trending Now',   icon: TrendingUp, gradient: 'linear-gradient(135deg, #e8b84b, #e05fa0)' },
@@ -20,31 +19,37 @@ const FEATURED_GENRES = [
   { name: 'Adventure',                        gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)' },
 ];
 
-// ── MovieRow — defined OUTSIDE parent to prevent remount on every render ──────
+// ── MovieRow — Netflix-style horizontal row with hover-zoom + scroll arrows ───
 function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onSeeAll, isMobile }) {
+  const trackRef = useRef(null);
+
+  const scrollByAmount = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.85 * dir;
+    el.scrollBy({ left: amount, behavior: 'smooth' });
+  };
+
   return (
-    <div style={{ marginBottom: isFirst ? 36 : 44 }}>
+    <div className="mv-row" style={{ marginBottom: isFirst ? 30 : 38 }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: isMobile ? '0 16px' : '0 32px', marginBottom: 14,
+        padding: isMobile ? '0 16px' : '0 32px', marginBottom: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {Icon && (
             <div style={{
-              width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+              width: 26, height: 26, borderRadius: 7, flexShrink: 0,
               background: gradient || ACCENT_DIM,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Icon size={14} color="#fff" />
+              <Icon size={13} color="#fff" />
             </div>
           )}
           <h2 style={{
             fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 15 : 17,
             fontWeight: 700, color: '#e8eaf0', margin: 0, letterSpacing: '-0.2px',
           }}>{title}</h2>
-          <span style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#3a4560', fontWeight: 500,
-          }}>{rowMovies.length}</span>
         </div>
         <button
           onClick={() => onSeeAll(title)}
@@ -61,16 +66,41 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
         </button>
       </div>
 
-      <div style={{
-        display: 'flex', gap: isMobile ? 10 : 14, overflowX: 'auto',
-        padding: isMobile ? '4px 16px 10px' : '4px 32px 12px',
-        scrollbarWidth: 'none', scrollSnapType: 'x mandatory',
-      }}>
-        {rowMovies.map((movie, i) => (
-          <div key={movie._id || i} style={{ flexShrink: 0, scrollSnapAlign: 'start' }}>
-            <MediaCard media={movie} type="movie" index={i} size={isMobile ? 'sm' : 'md'} />
-          </div>
-        ))}
+      <div className="mv-row-wrap" style={{ position: 'relative' }}>
+        {!isMobile && (
+          <button
+            aria-label="Scroll left"
+            className="mv-arrow mv-arrow-l"
+            onClick={() => scrollByAmount(-1)}
+          >
+            <ChevronLeft size={22} />
+          </button>
+        )}
+
+        <div
+          ref={trackRef}
+          style={{
+            display: 'flex', gap: isMobile ? 10 : 12, overflowX: 'auto',
+            padding: isMobile ? '4px 16px 10px' : '4px 32px 12px',
+            scrollbarWidth: 'none', scrollSnapType: 'x mandatory',
+          }}
+        >
+          {rowMovies.map((movie, i) => (
+            <div key={movie._id || i} className="mv-card" style={{ flexShrink: 0, scrollSnapAlign: 'start' }}>
+              <MediaCard media={movie} type="movie" index={i} size={isMobile ? 'sm' : 'md'} />
+            </div>
+          ))}
+        </div>
+
+        {!isMobile && (
+          <button
+            aria-label="Scroll right"
+            className="mv-arrow mv-arrow-r"
+            onClick={() => scrollByAmount(1)}
+          >
+            <ChevronRight size={22} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -80,8 +110,6 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
 export default function Movies() {
   const [movies,        setMovies]        = useState([]);
   const [loading,       setLoading]       = useState(true);
-  const [search,        setSearch]        = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
   const [showAll,       setShowAll]       = useState(false);
   const [activeGenre,   setActiveGenre]   = useState(null);
   const [isMobile,      setIsMobile]      = useState(
@@ -121,17 +149,6 @@ export default function Movies() {
     return groups;
   }, [movies]);
 
-  const searchResults = useMemo(() => {
-    if (!search.trim()) return [];
-    const q = search.toLowerCase();
-    return movies
-      .filter(m =>
-        m.title?.toLowerCase().includes(q) ||
-        (m.genres || []).some(g => typeof g === 'string' && g.toLowerCase().includes(q))
-      )
-      .slice(0, 40);
-  }, [movies, search]);
-
   const allMoviesSorted = useMemo(() =>
     [...movies].sort((a, b) => {
       const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
@@ -141,8 +158,6 @@ export default function Movies() {
 
   const handleSeeAll = (genre) => { setActiveGenre(genre); setShowAll(true); };
   const handleBack   = ()      => { setShowAll(false); setActiveGenre(null); };
-
-  const px = isMobile ? '0 16px' : '0 32px';
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) return (
@@ -224,88 +239,27 @@ export default function Movies() {
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: '#3a4560', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total</div>
           </div>
         </div>
-
-        {/* Search */}
-        <div style={{ marginTop: 20 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            maxWidth: isMobile ? '100%' : 460,
-            background: searchFocused ? 'rgba(232,184,75,0.05)' : '#0d1420',
-            border: `1px solid ${searchFocused ? `${ACCENT}44` : 'rgba(255,255,255,0.07)'}`,
-            borderRadius: 10, padding: '0 14px', transition: 'all 0.2s',
-            boxShadow: searchFocused ? `0 0 0 3px ${ACCENT_GLOW}` : 'none',
-          }}>
-            <Search size={14} color={searchFocused ? ACCENT : '#3a4560'} style={{ flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Search movies by title or genre..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none',
-                fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#c8d0e0', padding: '12px 0' }}
-            />
-            {search && (
-              <button onClick={() => setSearch('')} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: '#4a5570', fontSize: 16, lineHeight: 1, padding: 0,
-              }}>✕</button>
-            )}
-          </div>
-        </div>
       </div>
 
-      {/* Search Results */}
-      {search && (
-        <div style={{ padding: isMobile ? '24px 16px 40px' : '24px 32px 40px' }}>
-          {searchResults.length > 0 ? (
-            <>
-              <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 700,
-                color: '#e8eaf0', marginBottom: 16, marginTop: 0 }}>
-                Results for "{search}" — {searchResults.length} found
-              </h2>
-              <div style={gridStyle}>
-                {searchResults.map((movie, i) => (
-                  <MediaCard key={movie._id || i} media={movie} type="movie" index={i} />
-                ))}
-              </div>
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: 44, marginBottom: 14 }}>🎬</div>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#4a5570', fontSize: 16, margin: '0 0 6px' }}>
-                No movies found for "{search}"
-              </p>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#2a3550', fontSize: 13 }}>
-                Try a different title or genre
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Genre Rows */}
-      {!search && (
-        <div style={{ paddingBottom: 60 }}>
-          {FEATURED_GENRES.map((genre, index) => {
-            const rowMovies = genreMovies[genre.name] || [];
-            if (rowMovies.length === 0) return null;
-            return (
-              <MovieRow
-                key={genre.name}
-                title={genre.name}
-                movies={rowMovies}
-                gradient={genre.gradient}
-                icon={genre.icon}
-                isFirst={index === 0}
-                onSeeAll={handleSeeAll}
-                isMobile={isMobile}
-              />
-            );
-          })}
-        </div>
-      )}
+      <div style={{ paddingBottom: 60 }}>
+        {FEATURED_GENRES.map((genre, index) => {
+          const rowMovies = genreMovies[genre.name] || [];
+          if (rowMovies.length === 0) return null;
+          return (
+            <MovieRow
+              key={genre.name}
+              title={genre.name}
+              movies={rowMovies}
+              gradient={genre.gradient}
+              icon={genre.icon}
+              isFirst={index === 0}
+              onSeeAll={handleSeeAll}
+              isMobile={isMobile}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -324,6 +278,33 @@ const CSS = `
     background-size: 200% 100%;
     animation: mv-shimmer 1.4s ease infinite;
   }
+
+  /* Netflix-style hover zoom on cards (desktop only, mouse-capable) */
+  @media (hover: hover) and (pointer: fine) {
+    .mv-card {
+      transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transform-origin: center center;
+    }
+    .mv-card:hover {
+      transform: scale(1.08);
+      z-index: 5;
+      position: relative;
+    }
+  }
+
+  /* Row scroll arrows */
+  .mv-arrow {
+    position: absolute; top: 0; bottom: 12px;
+    width: 44px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(90deg, #080c14 10%, transparent);
+    border: none; color: #e8eaf0; cursor: pointer;
+    opacity: 0; transition: opacity 0.2s ease;
+    z-index: 6;
+  }
+  .mv-arrow-r { right: 0; background: linear-gradient(270deg, #080c14 10%, transparent); }
+  .mv-arrow-l { left: 0; }
+  .mv-row:hover .mv-arrow { opacity: 1; }
+
   ::-webkit-scrollbar { height: 3px; width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 4px; }
