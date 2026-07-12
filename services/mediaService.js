@@ -44,6 +44,28 @@ export const getShows = async () => {
   }
 };
 
+// ─── MOVIES BY GENRE (dedicated pool per genre, not filtered from trending) ───
+export const getMoviesByGenre = async (genreId) => {
+  try {
+    const data = await fetchWithRetry(`${BACKEND_URL}/media/movies/genre/${genreId}`);
+    return data;
+  } catch (err) {
+    console.error(`Backend fetch movies-by-genre (${genreId}) error:`, err.message);
+    return [];
+  }
+};
+
+// ─── SHOWS BY GENRE (dedicated pool per genre, not filtered from trending) ───
+export const getShowsByGenre = async (genreId) => {
+  try {
+    const data = await fetchWithRetry(`${BACKEND_URL}/media/series/genre/${genreId}`);
+    return data;
+  } catch (err) {
+    console.error(`Backend fetch series-by-genre (${genreId}) error:`, err.message);
+    return [];
+  }
+};
+
 // ─── UNIFIED SEARCH (Movies + Series) ───
 export const searchMedia = async (query) => {
   if (!query || query.trim() === '') {
