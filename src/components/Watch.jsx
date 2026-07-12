@@ -200,13 +200,33 @@ export default function Watch() {
 
       const sources = [];
 
+      // #1 - VIDSRC.WTF Multi Server (accepts tmdbId or imdbId)
       sources.push({
-        name: '👑 VIP',
+        name: 'God Server👑',
+        url: seriesFlag
+          ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
+        quality: 'HD', id: 'vidsrcwtf'
+      });
+
+      // #2 - VIDLUX (requires tmdbId)
+      if (tmdbId) {
+        sources.push({
+          name: 'DemiGod👑',
+          url: seriesFlag
+            ? `https://vidlux.xyz/embed/tv/${tmdbId}/${season}/${episode}`
+            : `https://vidlux.xyz/embed/movie/${tmdbId}`,
+          quality: 'HD', id: 'vidlux'
+        });
+      }
+
+      sources.push({
+        name: 'VIP👑',
         url: seriesFlag ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
         quality: 'HD', id: 'vidsrc'
       });
       sources.push({
-        name: '⭐ 2Embed',
+        name: '2embed',
         url: seriesFlag ? `https://www.2embed.cc/embedtv/${tmdbId || anyId}&s=${season}&e=${episode}` : `https://www.2embed.cc/embed/${tmdbId || anyId}`,
         quality: 'HD', id: '2embed'
       });
@@ -216,16 +236,13 @@ export default function Watch() {
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
-        name: '⭐ Premium',
+        name: 'Premium ⭐',
         url: seriesFlag ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
         quality: 'HD', id: 'smashystream'
       });
 
       if (tmdbId) {
         sources.push({ name: 'VidLink', url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
-        sources.push({ name: 'Embed.su', url: seriesFlag ? `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}` : `https://embed.su/embed/movie/${tmdbId}`, quality: 'HD', id: 'embedsu' });
-        sources.push({ name: 'AutoEmbed', url: `https://autoembed.co/${seriesFlag ? 'tv' : 'movie'}/${tmdbId}`, quality: 'Auto', id: 'autoembed' });
-        sources.push({ name: 'MovieWeb', url: seriesFlag ? `https://movie-web.app/media/tv/${tmdbId}/${season}/${episode}` : `https://movie-web.app/media/movie/${tmdbId}`, quality: '4K', id: 'movieweb' });
       }
 
       setSources(sources);
