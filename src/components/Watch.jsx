@@ -200,25 +200,25 @@ export default function Watch() {
 
       const sources = [];
 
-      // #1 - VIDSRC.WTF Multi Server (accepts tmdbId or imdbId)
-      sources.push({
-        name: 'God Server👑',
-        url: seriesFlag
-          ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
-        quality: 'HD', id: 'vidsrcwtf'
-      });
-
-      // #2 - VIDLUX (requires tmdbId)
+      // #1 - VIDLUX
       if (tmdbId) {
         sources.push({
-          name: 'DemiGod👑',
+          name: 'God👑',
           url: seriesFlag
             ? `https://vidlux.xyz/embed/tv/${tmdbId}/${season}/${episode}`
             : `https://vidlux.xyz/embed/movie/${tmdbId}`,
           quality: 'HD', id: 'vidlux'
         });
       }
+
+      // #2 - VIDSRC.WTF 
+      sources.push({
+        name: 'DemiGod👑',
+        url: seriesFlag
+          ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
+        quality: 'HD', id: 'vidsrcwtf'
+      });
 
       sources.push({
         name: 'VIP👑',
