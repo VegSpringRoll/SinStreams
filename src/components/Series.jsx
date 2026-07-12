@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MediaCard from './MediaCard';
 import { getShows, getShowsByGenre } from '../../services/mediaService';
-import { Tv, ChevronRight, ChevronLeft, TrendingUp, Drama, Laugh, Swords, Orbit, Fingerprint, Search, Sparkles, Users, Camera } from 'lucide-react';
+import {
+  Tv, ChevronRight, ChevronLeft, TrendingUp, Drama, Laugh, Swords, Orbit,
+  Fingerprint, Search, Sparkles, Users, Camera, Shuffle
+} from 'lucide-react';
 
 const ACCENT      = '#5ba4d4';
 const ACCENT_DIM  = 'rgba(91,164,212,0.1)';
@@ -20,6 +24,78 @@ const FEATURED_GENRES = [
   { name: 'Family',             icon: Users,       gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 10751 },
   { name: 'Documentary',        icon: Camera,      gradient: 'linear-gradient(135deg, #8d6e63, #4e342e)', tmdbId: 99 },
 ];
+
+// ── Randomizer — "Surprise Me" hero section with a slot-machine style shuffle ──
+function Randomizer({ pool, isMobile, navigate }) {
+  const [previewItem, setPreviewItem] = useState(null);
+  const [shuffling, setShuffling] = useState(false);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (!previewItem && pool.length > 0) {
+      setPreviewItem(pool[Math.floor(Math.random() * pool.length)]);
+    }
+  }, [pool, previewItem]);
+
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
+
+  const handleRandomize = () => {
+    if (shuffling || pool.length === 0) return;
+    setShuffling(true);
+
+    let ticks = 0;
+    const maxTicks = 12;
+    intervalRef.current = setInterval(() => {
+      ticks += 1;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      setPreviewItem(pick);
+
+      if (ticks >= maxTicks) {
+        clearInterval(intervalRef.current);
+        setShuffling(false);
+        // Adjust this path if your router uses a different details route.
+        navigate(`/details/series/${pick._id}`);
+      }
+    }, 85);
+  };
+
+  return (
+    <div className="sr-randomizer">
+      <div className="sr-randomizer-preview">
+        {previewItem?.images?.poster ? (
+          <img
+            src={previewItem.images.poster}
+            alt=""
+            className={shuffling ? 'sr-shuffling' : ''}
+          />
+        ) : (
+          <div className="sr-randomizer-placeholder"><Tv size={26} /></div>
+        )}
+      </div>
+
+      <div className="sr-randomizer-info">
+        <div className="sr-randomizer-eyebrow">
+          <Shuffle size={13} />
+          <span>Can't decide?</span>
+        </div>
+        <h2>Surprise Me</h2>
+        {!isMobile && (
+          <p>{previewItem ? previewItem.title : 'Let us pick something great for you to watch.'}</p>
+        )}
+        <button
+          onClick={handleRandomize}
+          disabled={shuffling || pool.length === 0}
+          className="sr-randomizer-btn"
+        >
+          <Shuffle size={16} className={shuffling ? 'sr-spin' : ''} />
+          {shuffling ? 'Shuffling…' : 'Randomize'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ── SeriesRow — Netflix-style horizontal row with hover-zoom + scroll arrows ──
 function SeriesRow({ title, shows: rowShows, gradient, icon: Icon, isFirst, onSeeAll, isMobile }) {
@@ -110,6 +186,7 @@ function SeriesRow({ title, shows: rowShows, gradient, icon: Icon, isFirst, onSe
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function Series() {
+  const navigate = useNavigate();
   const [trendingSeries, setTrendingSeries] = useState([]);
   const [genrePools,     setGenrePools]     = useState({});
   const [loading,        setLoading]        = useState(true);
@@ -168,6 +245,15 @@ export default function Series() {
     'Trending Now': trendingSorted,
     ...genrePools,
   }), [trendingSorted, genrePools]);
+
+  // Deduplicated pool of every show loaded across all rows, used by the randomizer.
+  const allShowsPool = useMemo(() => {
+    const map = new Map();
+    [...trendingSorted, ...Object.values(genrePools).flat()].forEach(s => {
+      if (s && s._id) map.set(s._id, s);
+    });
+    return Array.from(map.values());
+  }, [trendingSorted, genrePools]);
 
   const handleSeeAll = (genre) => { setActiveGenre(genre); setShowAll(true); };
   const handleBack   = ()      => { setShowAll(false); setActiveGenre(null); };
@@ -234,23 +320,15 @@ export default function Series() {
         padding: isMobile ? '24px 16px 20px' : '36px 32px 28px',
         borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Tv size={16} color={ACCENT} strokeWidth={1.5} />
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 600,
-                color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.14em' }}>Collection</span>
-            </div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif",
-              fontSize: isMobile ? 34 : 'clamp(32px, 4vw, 48px)', fontWeight: 900,
-              color: '#e8eaf0', margin: 0, letterSpacing: '-1px' }}>Series</h1>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: ACCENT }}>{trendingSeries.length}</div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: '#3a4560', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total</div>
-          </div>
-        </div>
+        <h1 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: isMobile ? 34 : 'clamp(32px, 4vw, 48px)', fontWeight: 900,
+          color: '#e8eaf0', margin: 0, letterSpacing: '-1px',
+        }}>Series</h1>
       </div>
+
+      {/* Randomizer */}
+      <Randomizer pool={allShowsPool} isMobile={isMobile} navigate={navigate} />
 
       {/* Genre Rows */}
       <div style={{ paddingBottom: 60 }}>
@@ -319,4 +397,61 @@ const CSS = `
   ::-webkit-scrollbar { height: 3px; width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 4px; }
+
+  /* ── Randomizer ── */
+  .sr-randomizer {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 8px 32px 40px;
+    padding: 20px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(91,164,212,0.09), rgba(224,95,160,0.06));
+    border: 1px solid rgba(91,164,212,0.18);
+  }
+  .sr-randomizer-preview {
+    width: 90px; height: 130px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sr-randomizer-preview img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.08s ease; }
+  .sr-randomizer-placeholder { color: #3a4560; }
+  .sr-randomizer-info { flex: 1; min-width: 0; }
+  .sr-randomizer-eyebrow {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+    color: #5ba4d4; text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .sr-randomizer-info h2 {
+    font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900;
+    color: #e8eaf0; margin: 0 0 4px;
+  }
+  .sr-randomizer-info p {
+    font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6878a0;
+    margin: 0 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sr-randomizer-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: #5ba4d4; color: #080c14; border: none; border-radius: 8px;
+    padding: 11px 22px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .sr-randomizer-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .sr-randomizer-btn:disabled { opacity: 0.5; cursor: default; }
+  @keyframes sr-spin { to { transform: rotate(360deg); } }
+  .sr-spin { animation: sr-spin 0.6s linear infinite; }
+  .sr-shuffling { opacity: 0.55; }
+
+  @media (max-width: 768px) {
+    .sr-randomizer { margin: 4px 16px 28px; padding: 16px; gap: 16px; }
+    .sr-randomizer-preview { width: 66px; height: 96px; }
+    .sr-randomizer-info h2 { font-size: 18px; }
+    .sr-randomizer-btn { padding: 10px 16px; font-size: 13px; width: 100%; justify-content: center; }
+  }
+
+  @media (max-width: 420px) {
+    .sr-randomizer { flex-direction: column; align-items: stretch; }
+    .sr-randomizer-preview { width: 100%; height: 150px; }
+  }
 `;
