@@ -141,12 +141,18 @@ const handleResultClick = (result) => {
 
         .sin-desktop-links { display: flex; }
 .sin-dev-credit { display: flex; }
-.sin-mobile-toggle { display: none; }
+.sin-mobile-toggle { display: none; flex-shrink: 0; }
+.sin-navbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.sin-profile-name { display: inline; }
+.sin-profile-chevron { display: inline-flex; }
 
 @media (max-width: 768px) {
   .sin-desktop-links { display: none !important; }
   .sin-dev-credit { display: none !important; }
   .sin-mobile-toggle { display: flex !important; }
+  .sin-navbar-right { gap: 6px; }
+  .sin-profile-name { display: none; }
+  .sin-profile-chevron { display: none; }
 }
         .sin-link:hover { color: #c8d0e0; }
         .sin-link.active { color: #e8eaf0; }
@@ -203,6 +209,15 @@ const handleResultClick = (result) => {
           transition: color 0.2s, background 0.2s;
         }
         .sin-mobile-link:hover, .sin-mobile-link.active { color: #e8eaf0; background: rgba(255,255,255,0.04); }
+
+        .sinema-nav { padding: 0 32px; }
+        .sin-logo-link { margin-right: 36px; }
+        .sin-logo-text { font-size: 22px; }
+        @media (max-width: 768px) {
+          .sinema-nav { padding: 0 16px; }
+          .sin-logo-link { margin-right: 14px; }
+          .sin-logo-text { font-size: 18px; }
+        }
       `}</style>
 
       {/* ── NAVBAR ── */}
@@ -215,7 +230,6 @@ const handleResultClick = (result) => {
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
           height: 68,
           display: "flex", alignItems: "center",
-          padding: "0 32px",
           background: scrolled
             ? "rgba(8,12,20,0.96)"
             : "linear-gradient(to bottom, rgba(8,12,20,0.95) 0%, rgba(8,12,20,0.5) 70%, transparent)",
@@ -225,16 +239,16 @@ const handleResultClick = (result) => {
         }}
       >
         {/* ── LOGO ── */}
-        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, marginRight: 36, flexShrink: 0 }}>
+        <Link to="/" className="sin-logo-link" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 9,
             background: "linear-gradient(135deg, #e8b84b 0%, #e05fa0 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 15, boxShadow: "0 4px 14px rgba(232,184,75,0.3)",
           }}>▶</div>
-          <span style={{
+          <span className="sin-logo-text" style={{
             fontFamily: "'Playfair Display', serif",
-            fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em",
+            fontWeight: 900, letterSpacing: "-0.02em",
             background: "linear-gradient(90deg, #e8eaf0 30%, #a0a8c0 100%)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>SinStreams</span>
@@ -278,7 +292,7 @@ const handleResultClick = (result) => {
 </div>
 
         {/* ── RIGHT SIDE ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="sin-navbar-right">
 
           {/* Search toggle */}
           <button className="sin-icon-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
@@ -346,10 +360,10 @@ const handleResultClick = (result) => {
                   style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }}
                   onError={e => { e.target.style.display = "none"; }}
                 />
-                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#a0a8c0", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span className="sin-profile-name" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#a0a8c0", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user?.firstName}
                 </span>
-                <ChevronDown size={13} color="#4a5568" style={{ transition: "transform 0.2s", transform: profileOpen ? "rotate(180deg)" : "none" }} />
+                <ChevronDown className="sin-profile-chevron" size={13} color="#4a5568" style={{ transition: "transform 0.2s", transform: profileOpen ? "rotate(180deg)" : "none" }} />
               </button>
 
               <AnimatePresence>
