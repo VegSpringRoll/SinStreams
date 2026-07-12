@@ -23,7 +23,7 @@
       '<div id="adguard-prompt-card">' +
       '  <button id="adguard-prompt-close" aria-label="Close">&times;</button>' +
       '  <div id="adguard-prompt-icon">🛡️</div>' +
-      "  <p id=\"adguard-prompt-text\">For the best ads-free experience, download the <strong>AdGuard</strong> extension — it just takes seconds :)</p>" +
+      "  <p id=\"adguard-prompt-text\">For the best ads-free experience forever, download the <strong>AdGuard</strong> extension — it just takes seconds :)</p>" +
       '  <a id="adguard-prompt-install" href="' +
       INSTALL_URL +
       '" target="_blank" rel="noopener noreferrer">Get AdGuard</a>' +
@@ -68,12 +68,9 @@
     }
 
     document.getElementById("adguard-prompt-close").onclick = close;
-    document
-      .getElementById("adguard-prompt-install")
-      .addEventListener("click", function () {
-        // Assume they're installing it now — don't show again next visit.
-        localStorage.setItem(HIDE_KEY, "true");
-      });
+    // Note: clicking "Get AdGuard" does NOT set the hide-forever flag.
+    // Only the checkbox does. This way the box reappears on every visit
+    // until the user explicitly checks "Never show this again".
   }
 
   if (document.readyState === "complete" || document.readyState === "interactive") {
