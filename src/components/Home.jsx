@@ -5,22 +5,22 @@ import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getAnime } from '../../services/mediaService'
-import { Film, Tv, TrendingUp, Zap, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft } from 'lucide-react'
 
 // Curated genre picks for the homepage — the dedicated /movies and /series
 // pages cover the full genre list, so Home only teases a handful of each.
 const MOVIE_HOME_GENRES = [
-  { name: 'Action',           icon: Zap, gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
-  { name: 'Comedy',                      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Science Fiction',             gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
-  { name: 'Horror',                      gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
+  { name: 'Action',           icon: Zap,    gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
+  { name: 'Comedy',           icon: Laugh,  gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Science Fiction',  icon: Rocket, gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
+  { name: 'Horror',           icon: Ghost,  gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
 ];
 
 const SERIES_HOME_GENRES = [
-  { name: 'Drama',                       gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
-  { name: 'Comedy',                      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Action & Adventure',          gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
-  { name: 'Crime',                       gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
+  { name: 'Drama',              icon: Drama,       gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
+  { name: 'Comedy',              icon: Laugh,      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Action & Adventure',  icon: Swords,     gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
+  { name: 'Crime',               icon: Fingerprint,gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
 ];
 
 // ── ContentRow — Netflix-style horizontal row shared by the Movies & Series

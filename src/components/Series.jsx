@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MediaCard from './MediaCard';
 import { getShows, getShowsByGenre } from '../../services/mediaService';
-import { Tv, ChevronRight, ChevronLeft, TrendingUp } from 'lucide-react';
+import { Tv, ChevronRight, ChevronLeft, TrendingUp, Drama, Laugh, Swords, Orbit, Fingerprint, Search, Sparkles, Users, Camera } from 'lucide-react';
 
 const ACCENT      = '#5ba4d4';
 const ACCENT_DIM  = 'rgba(91,164,212,0.1)';
@@ -9,16 +9,16 @@ const ACCENT_DIM  = 'rgba(91,164,212,0.1)';
 // tmdbId is TMDB's official TV genre id — used to pull a full, dedicated list
 // for that genre from the backend, instead of filtering the small trending pool.
 const FEATURED_GENRES = [
-  { name: 'Trending Now',      icon: TrendingUp, gradient: 'linear-gradient(135deg, #5ba4d4, #e05fa0)' },
-  { name: 'Drama',                               gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
-  { name: 'Comedy',                              gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Action & Adventure',                  gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
-  { name: 'Sci-Fi & Fantasy',                    gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 10765 },
-  { name: 'Crime',                               gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
-  { name: 'Mystery',                             gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 9648 },
-  { name: 'Animation',                           gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
-  { name: 'Family',                              gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 10751 },
-  { name: 'Documentary',                         gradient: 'linear-gradient(135deg, #8d6e63, #4e342e)', tmdbId: 99 },
+  { name: 'Trending Now',      icon: TrendingUp,  gradient: 'linear-gradient(135deg, #5ba4d4, #e05fa0)' },
+  { name: 'Drama',              icon: Drama,       gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
+  { name: 'Comedy',             icon: Laugh,       gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Action & Adventure', icon: Swords,      gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
+  { name: 'Sci-Fi & Fantasy',   icon: Orbit,       gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 10765 },
+  { name: 'Crime',              icon: Fingerprint, gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
+  { name: 'Mystery',            icon: Search,      gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 9648 },
+  { name: 'Animation',          icon: Sparkles,    gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
+  { name: 'Family',             icon: Users,       gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 10751 },
+  { name: 'Documentary',        icon: Camera,      gradient: 'linear-gradient(135deg, #8d6e63, #4e342e)', tmdbId: 99 },
 ];
 
 // ── SeriesRow — Netflix-style horizontal row with hover-zoom + scroll arrows ──
