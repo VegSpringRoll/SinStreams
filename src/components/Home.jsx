@@ -5,7 +5,8 @@ import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getAnime } from '../../services/mediaService'
-import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft } from 'lucide-react'
+import { getLastWatched, clearLastWatched } from '../../services/watchHistory'
+import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw } from 'lucide-react'
 
 // Curated genre picks for the homepage — the dedicated /movies and /series
 // pages cover the full genre list, so Home only teases a handful of each.
@@ -101,6 +102,7 @@ export default function Home() {
   const [copied, setCopied] = useState(false)
   const [movieGenrePools, setMovieGenrePools] = useState({})
   const [seriesGenrePools, setSeriesGenrePools] = useState({})
+  const [continueWatching, setContinueWatching] = useState(() => getLastWatched())
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   )
@@ -140,6 +142,24 @@ export default function Home() {
   // Handle close player
   const handleClosePlayer = () => {
     setPlayingMedia(null);
+  };
+
+  // Continue Watching — resume the last-watched title at its saved point
+  const handleResumeContinue = () => {
+    if (!continueWatching) return;
+    navigate('/watch', {
+      state: {
+        media: continueWatching.media,
+        autoPlay: true,
+        startSeason: continueWatching.season,
+        startEpisode: continueWatching.episode,
+      }
+    });
+  };
+
+  const handleDismissContinue = () => {
+    clearLastWatched();
+    setContinueWatching(null);
   };
 
   // UPI functions
@@ -330,6 +350,103 @@ export default function Home() {
             onAddList={(id) => toggleWatchlist(id)}
             onPlay={handlePlay}
           />
+        )}
+
+        {/* ===== CONTINUE WATCHING ===== */}
+        {continueWatching && (
+          <div style={{ padding: isMobile ? '20px 16px 0' : '28px 32px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <RotateCcw size={15} color="#e8b84b" strokeWidth={2.2} />
+              <h2 style={{
+                fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 14.5,
+                fontWeight: 700, color: '#c8d0e0', margin: 0,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>Continue Watching</h2>
+            </div>
+
+            <div
+              className="cw-card"
+              onClick={handleResumeContinue}
+              style={{
+                position: 'relative', display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
+                background: '#0d1420', border: '1px solid rgba(255,255,255,0.07)',
+              }}
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDismissContinue(); }}
+                aria-label="Remove from Continue Watching"
+                style={{
+                  position: 'absolute', top: 10, right: 10, zIndex: 3,
+                  width: 28, height: 28, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                }}
+              >
+                <X size={14} />
+              </button>
+
+              <div style={{
+                position: 'relative', flexShrink: 0,
+                width: isMobile ? '100%' : 340,
+                aspectRatio: '16/9', background: '#000',
+              }}>
+                <img
+                  src={continueWatching.media.images?.fanart || continueWatching.media.images?.poster}
+                  alt={continueWatching.media.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: isMobile
+                    ? 'linear-gradient(to top, rgba(8,12,20,0.9), rgba(8,12,20,0.05) 60%)'
+                    : 'linear-gradient(to right, rgba(8,12,20,0.15), rgba(8,12,20,0.15))',
+                }} />
+                <div className="cw-play-btn" style={{
+                  position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                  width: 50, height: 50, borderRadius: '50%',
+                  background: 'rgba(232,184,75,0.95)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Play size={20} fill="#080c14" color="#080c14" style={{ marginLeft: 3 }} />
+                </div>
+              </div>
+
+              <div style={{ flex: 1, padding: isMobile ? '14px 16px 16px' : '20px 24px', minWidth: 0 }}>
+                <h3 style={{
+                  fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 18 : 22,
+                  fontWeight: 800, color: '#e8eaf0', margin: '0 0 6px', letterSpacing: '-0.3px',
+                }}>{continueWatching.media.title}</h3>
+                <p style={{
+                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#e8b84b',
+                  fontWeight: 600, margin: '0 0 8px',
+                }}>
+                  {continueWatching.season
+                    ? `Season ${continueWatching.season} • Episode ${continueWatching.episode}${continueWatching.episodeName ? `: ${continueWatching.episodeName}` : ''}`
+                    : (continueWatching.media.year ? `Movie • ${continueWatching.media.year}` : 'Movie')}
+                </p>
+                {continueWatching.media.synopsis && !isMobile && (
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#6878a0',
+                    lineHeight: 1.6, margin: '0 0 14px',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  }}>{continueWatching.media.synopsis}</p>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleResumeContinue(); }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    background: '#e8b84b', color: '#080c14', border: 'none',
+                    borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700,
+                    fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
+                  }}
+                >
+                  <Play size={15} fill="#080c14" /> Resume
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ===== MOVIES SECTION ===== */}
@@ -688,6 +805,14 @@ export default function Home() {
 
 const HOME_ROW_CSS = `
   @keyframes hm-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  /* Continue Watching card */
+  @media (hover: hover) and (pointer: fine) {
+    .cw-card { transition: border-color 0.2s ease; }
+    .cw-card:hover { border-color: rgba(232,184,75,0.3) !important; }
+    .cw-card:hover .cw-play-btn { transform: translate(-50%, -50%) scale(1.1); }
+  }
+  .cw-play-btn { transition: transform 0.2s ease; }
 
   /* Netflix-style hover zoom on cards (desktop only, mouse-capable) */
   @media (hover: hover) and (pointer: fine) {
