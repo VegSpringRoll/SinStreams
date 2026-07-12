@@ -16,6 +16,9 @@ export default function Watch() {
 
   const [recommendations, setRecommendations] = useState([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
   
   // Video source states
   const [sources, setSources] = useState([]);
@@ -36,6 +39,12 @@ export default function Watch() {
   const [showDetails, setShowDetails] = useState(null);
 
   const isSeries = media?.type === 'series' || media?.type === 'tv';
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -346,20 +355,34 @@ export default function Watch() {
       </div>
 
       {/* Recommendations */}
-      <div style={styles.recommendationsSection}>
-        <h2 style={styles.sectionTitle}>You May Also Like</h2>
+      <div style={{ ...styles.recommendationsSection, padding: isMobile ? '24px 0 32px' : '32px' }}>
+        <h2 style={{ ...styles.sectionTitle, padding: isMobile ? '0 16px' : 0, fontSize: isMobile ? 17 : 20 }}>
+          You May Also Like
+        </h2>
         {loadingRecs ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
             <div style={styles.spinner} />
           </div>
         ) : recommendations.length > 0 ? (
-          <div style={styles.recGrid}>
-            {recommendations.map((rec, i) => (
-              <MediaCard key={rec._id || i} media={rec} type={rec.type || "movie"} index={i} />
-            ))}
-          </div>
+          isMobile ? (
+            <div className="hide-scrollbar" style={styles.recRowMobile}>
+              {recommendations.map((rec, i) => (
+                <div key={rec._id || i} style={styles.recCardMobile}>
+                  <MediaCard media={rec} type={rec.type || "movie"} index={i} size="sm" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={styles.recGrid}>
+              {recommendations.map((rec, i) => (
+                <MediaCard key={rec._id || i} media={rec} type={rec.type || "movie"} index={i} size="md" />
+              ))}
+            </div>
+          )
         ) : (
-          <p style={{ color: '#666', fontFamily: "'DM Sans', sans-serif" }}>No recommendations available.</p>
+          <p style={{ color: '#666', fontFamily: "'DM Sans', sans-serif", padding: isMobile ? '0 16px' : 0 }}>
+            No recommendations available.
+          </p>
         )}
       </div>
 
@@ -631,6 +654,17 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
     gap: 16,
+  },
+  recRowMobile: {
+    display: 'flex',
+    gap: 10,
+    overflowX: 'auto',
+    padding: '4px 16px 8px',
+    scrollSnapType: 'x mandatory',
+  },
+  recCardMobile: {
+    flexShrink: 0,
+    scrollSnapAlign: 'start',
   },
   spinner: {
     width: 40,
