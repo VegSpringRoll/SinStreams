@@ -1,49 +1,25 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MediaCard from './MediaCard';
-import { getShows } from '../../services/mediaService';
+import { getShows, getShowsByGenre } from '../../services/mediaService';
 import { Tv, ChevronRight, ChevronLeft, TrendingUp } from 'lucide-react';
 
 const ACCENT      = '#5ba4d4';
 const ACCENT_DIM  = 'rgba(91,164,212,0.1)';
 
+// tmdbId is TMDB's official TV genre id — used to pull a full, dedicated list
+// for that genre from the backend, instead of filtering the small trending pool.
 const FEATURED_GENRES = [
   { name: 'Trending Now',      icon: TrendingUp, gradient: 'linear-gradient(135deg, #5ba4d4, #e05fa0)' },
-  { name: 'Drama',                               gradient: 'linear-gradient(135deg, #5c6bc0, #283593)' },
-  { name: 'Comedy',                              gradient: 'linear-gradient(135deg, #ff9800, #f57c00)' },
-  { name: 'Action & Adventure',                  gradient: 'linear-gradient(135deg, #ff4444, #cc0000)' },
-  { name: 'Sci-Fi & Fantasy',                    gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)' },
-  { name: 'Crime',                               gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)' },
-  { name: 'Mystery',                             gradient: 'linear-gradient(135deg, #26a69a, #00695c)' },
-  { name: 'Animation',                           gradient: 'linear-gradient(135deg, #ff7043, #e64a19)' },
-  { name: 'Family',                              gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)' },
-  { name: 'Documentary',                         gradient: 'linear-gradient(135deg, #8d6e63, #4e342e)' },
+  { name: 'Drama',                               gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
+  { name: 'Comedy',                              gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Action & Adventure',                  gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
+  { name: 'Sci-Fi & Fantasy',                    gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 10765 },
+  { name: 'Crime',                               gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
+  { name: 'Mystery',                             gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 9648 },
+  { name: 'Animation',                           gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
+  { name: 'Family',                              gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 10751 },
+  { name: 'Documentary',                         gradient: 'linear-gradient(135deg, #8d6e63, #4e342e)', tmdbId: 99 },
 ];
-
-// ── genre filter helper ────────────────────────────────────────────────────────
-// Normalizes whatever shape genres come in (array of strings, array of
-// {name}/{genre}/{title} objects, comma-separated string, or a singular
-// `genre` field) into a flat lowercase array of trimmed strings.
-function getGenreList(media) {
-  const raw = media?.genres ?? media?.genre ?? [];
-  const arr = Array.isArray(raw) ? raw : String(raw).split(',');
-  return arr
-    .map(g => {
-      if (typeof g === 'string') return g;
-      if (g && typeof g === 'object') return g.name || g.genre || g.title || '';
-      return '';
-    })
-    .map(g => g.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function matchGenre(media, name) {
-  const g = getGenreList(media);
-  if (name === 'Action & Adventure')
-    return g.some(x => x.includes('action') || x.includes('adventure'));
-  if (name === 'Sci-Fi & Fantasy')
-    return g.some(x => x.includes('sci') || x.includes('fantasy') || x === 'science fiction');
-  return g.some(x => x === name.toLowerCase());
-}
 
 // ── SeriesRow — Netflix-style horizontal row with hover-zoom + scroll arrows ──
 function SeriesRow({ title, shows: rowShows, gradient, icon: Icon, isFirst, onSeeAll, isMobile }) {
@@ -134,11 +110,12 @@ function SeriesRow({ title, shows: rowShows, gradient, icon: Icon, isFirst, onSe
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function Series() {
-  const [series,        setSeries]        = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [showAll,       setShowAll]       = useState(false);
-  const [activeGenre,   setActiveGenre]   = useState(null);
-  const [isMobile,      setIsMobile]      = useState(
+  const [trendingSeries, setTrendingSeries] = useState([]);
+  const [genrePools,     setGenrePools]     = useState({});
+  const [loading,        setLoading]        = useState(true);
+  const [showAll,        setShowAll]        = useState(false);
+  const [activeGenre,    setActiveGenre]    = useState(null);
+  const [isMobile,       setIsMobile]       = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
 
@@ -149,38 +126,48 @@ export default function Series() {
   }, []);
 
   useEffect(() => {
-    getShows()
-      .then(data => setSeries(Array.isArray(data) ? data : []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const loadAll = async () => {
+      // Trending row + total count
+      const trendingPromise = getShows().then(data => Array.isArray(data) ? data : []);
+
+      // Each genre gets its own dedicated pool, fetched in parallel
+      const genreEntries = FEATURED_GENRES.filter(g => g.tmdbId);
+      const genrePromises = genreEntries.map(g =>
+        getShowsByGenre(g.tmdbId).then(data => [g.name, Array.isArray(data) ? data : []])
+      );
+
+      const [trending, genreResults] = await Promise.all([
+        trendingPromise,
+        Promise.all(genrePromises),
+      ]);
+
+      if (cancelled) return;
+      setTrendingSeries(trending);
+      setGenrePools(Object.fromEntries(genreResults));
+      setLoading(false);
+    };
+
+    loadAll().catch(err => {
+      console.error(err);
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
   }, []);
 
-  const genreShows = useMemo(() => {
-    const groups = {};
-    FEATURED_GENRES.forEach(({ name }) => {
-      if (name === 'Trending Now') {
-        groups[name] = [...series]
-          .sort((a, b) => {
-            const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
-            const rb = typeof b.rating === 'object' ? b.rating.percentage / 10 : (b.rating || 0);
-            return rb - ra;
-          })
-          .slice(0, 20);
-      } else {
-        groups[name] = series
-          .filter(s => matchGenre(s, name))
-          .slice(0, 20);
-      }
-    });
-    return groups;
-  }, [series]);
-
-  const allSeriesSorted = useMemo(() =>
-    [...series].sort((a, b) => {
+  const trendingSorted = useMemo(() =>
+    [...trendingSeries].sort((a, b) => {
       const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
       const rb = typeof b.rating === 'object' ? b.rating.percentage / 10 : (b.rating || 0);
       return rb - ra;
-    }), [series]);
+    }).slice(0, 20), [trendingSeries]);
+
+  const genreShows = useMemo(() => ({
+    'Trending Now': trendingSorted,
+    ...genrePools,
+  }), [trendingSorted, genrePools]);
 
   const handleSeeAll = (genre) => { setActiveGenre(genre); setShowAll(true); };
   const handleBack   = ()      => { setShowAll(false); setActiveGenre(null); };
@@ -207,9 +194,7 @@ export default function Series() {
 
   // ── See All View ──────────────────────────────────────────────────────────
   if (showAll && activeGenre) {
-    const displayShows = activeGenre === 'Trending Now'
-      ? allSeriesSorted
-      : series.filter(s => matchGenre(s, activeGenre));
+    const displayShows = genreShows[activeGenre] || [];
 
     return (
       <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
@@ -261,7 +246,7 @@ export default function Series() {
               color: '#e8eaf0', margin: 0, letterSpacing: '-1px' }}>Series</h1>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: ACCENT }}>{series.length}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: ACCENT }}>{trendingSeries.length}</div>
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: '#3a4560', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total</div>
           </div>
         </div>

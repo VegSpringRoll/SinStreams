@@ -1,42 +1,24 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MediaCard from './MediaCard';
-import { getMovies } from '../../services/mediaService';
+import { getMovies, getMoviesByGenre } from '../../services/mediaService';
 import { Film, ChevronRight, ChevronLeft, TrendingUp, Zap } from 'lucide-react';
 
 const ACCENT      = '#e8b84b';
 const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
 
-// Normalizes whatever shape genres come in (array of strings, array of
-// {name}/{genre}/{title} objects, comma-separated string, or a singular
-// `genre` field) into a flat lowercase array of trimmed strings.
-function getGenreList(media) {
-  const raw = media?.genres ?? media?.genre ?? [];
-  const arr = Array.isArray(raw) ? raw : String(raw).split(',');
-  return arr
-    .map(g => {
-      if (typeof g === 'string') return g;
-      if (g && typeof g === 'object') return g.name || g.genre || g.title || '';
-      return '';
-    })
-    .map(g => g.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function matchesGenre(media, name) {
-  return getGenreList(media).some(g => g === name.toLowerCase());
-}
-
+// tmdbId is TMDB's official genre id — used to pull a full, dedicated list
+// for that genre from the backend, instead of filtering the small trending pool.
 const FEATURED_GENRES = [
   { name: 'Trending Now',   icon: TrendingUp, gradient: 'linear-gradient(135deg, #e8b84b, #e05fa0)' },
-  { name: 'Action',         icon: Zap,        gradient: 'linear-gradient(135deg, #ff4444, #cc0000)' },
-  { name: 'Comedy',                           gradient: 'linear-gradient(135deg, #ff9800, #f57c00)' },
-  { name: 'Science Fiction',                  gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)' },
-  { name: 'Horror',                           gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)' },
-  { name: 'Romance',                          gradient: 'linear-gradient(135deg, #ec407a, #c2185b)' },
-  { name: 'Drama',                            gradient: 'linear-gradient(135deg, #5c6bc0, #283593)' },
-  { name: 'Thriller',                         gradient: 'linear-gradient(135deg, #26a69a, #00695c)' },
-  { name: 'Animation',                        gradient: 'linear-gradient(135deg, #ff7043, #e64a19)' },
-  { name: 'Adventure',                        gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)' },
+  { name: 'Action',         icon: Zap,        gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
+  { name: 'Comedy',                           gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Science Fiction',                  gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
+  { name: 'Horror',                           gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
+  { name: 'Romance',                          gradient: 'linear-gradient(135deg, #ec407a, #c2185b)', tmdbId: 10749 },
+  { name: 'Drama',                            gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
+  { name: 'Thriller',                         gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 53 },
+  { name: 'Animation',                        gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
+  { name: 'Adventure',                        gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 12 },
 ];
 
 // ── MovieRow — Netflix-style horizontal row with hover-zoom + scroll arrows ───
@@ -128,11 +110,12 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function Movies() {
-  const [movies,        setMovies]        = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [showAll,       setShowAll]       = useState(false);
-  const [activeGenre,   setActiveGenre]   = useState(null);
-  const [isMobile,      setIsMobile]      = useState(
+  const [trendingMovies, setTrendingMovies] = useState([]);
+  const [genrePools,     setGenrePools]     = useState({});
+  const [loading,        setLoading]        = useState(true);
+  const [showAll,        setShowAll]        = useState(false);
+  const [activeGenre,    setActiveGenre]    = useState(null);
+  const [isMobile,       setIsMobile]       = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
 
@@ -143,38 +126,50 @@ export default function Movies() {
   }, []);
 
   useEffect(() => {
-    getMovies()
-      .then(data => setMovies(Array.isArray(data) ? data.filter(m => !m.type || m.type === 'movie') : []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const loadAll = async () => {
+      // Trending row + total count
+      const trendingPromise = getMovies().then(data =>
+        Array.isArray(data) ? data.filter(m => !m.type || m.type === 'movie') : []
+      );
+
+      // Each genre gets its own dedicated pool, fetched in parallel
+      const genreEntries = FEATURED_GENRES.filter(g => g.tmdbId);
+      const genrePromises = genreEntries.map(g =>
+        getMoviesByGenre(g.tmdbId).then(data => [g.name, Array.isArray(data) ? data : []])
+      );
+
+      const [trending, genreResults] = await Promise.all([
+        trendingPromise,
+        Promise.all(genrePromises),
+      ]);
+
+      if (cancelled) return;
+      setTrendingMovies(trending);
+      setGenrePools(Object.fromEntries(genreResults));
+      setLoading(false);
+    };
+
+    loadAll().catch(err => {
+      console.error(err);
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
   }, []);
 
-  const genreMovies = useMemo(() => {
-    const groups = {};
-    FEATURED_GENRES.forEach(({ name }) => {
-      if (name === 'Trending Now') {
-        groups[name] = [...movies]
-          .sort((a, b) => {
-            const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
-            const rb = typeof b.rating === 'object' ? b.rating.percentage / 10 : (b.rating || 0);
-            return rb - ra;
-          })
-          .slice(0, 20);
-      } else {
-        groups[name] = movies
-          .filter(m => matchesGenre(m, name))
-          .slice(0, 20);
-      }
-    });
-    return groups;
-  }, [movies]);
-
-  const allMoviesSorted = useMemo(() =>
-    [...movies].sort((a, b) => {
+  const trendingSorted = useMemo(() =>
+    [...trendingMovies].sort((a, b) => {
       const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
       const rb = typeof b.rating === 'object' ? b.rating.percentage / 10 : (b.rating || 0);
       return rb - ra;
-    }), [movies]);
+    }).slice(0, 20), [trendingMovies]);
+
+  const genreMovies = useMemo(() => ({
+    'Trending Now': trendingSorted,
+    ...genrePools,
+  }), [trendingSorted, genrePools]);
 
   const handleSeeAll = (genre) => { setActiveGenre(genre); setShowAll(true); };
   const handleBack   = ()      => { setShowAll(false); setActiveGenre(null); };
@@ -201,9 +196,7 @@ export default function Movies() {
 
   // ── See All View ──────────────────────────────────────────────────────────
   if (showAll && activeGenre) {
-    const displayMovies = activeGenre === 'Trending Now'
-      ? allMoviesSorted
-      : movies.filter(m => matchesGenre(m, activeGenre));
+    const displayMovies = genreMovies[activeGenre] || [];
 
     return (
       <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
@@ -255,7 +248,7 @@ export default function Movies() {
               color: '#e8eaf0', margin: 0, letterSpacing: '-1px' }}>Movies</h1>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: ACCENT }}>{movies.length}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: ACCENT }}>{trendingMovies.length}</div>
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: '#3a4560', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Total</div>
           </div>
         </div>
