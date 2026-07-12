@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import MediaCard from '../components/MediaCard';
+import MediaCard from './MediaCard';
 import { getShows } from '../../services/mediaService';
 import { Tv, Search, ChevronRight, ChevronLeft, TrendingUp } from 'lucide-react';
 
