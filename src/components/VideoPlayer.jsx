@@ -149,14 +149,14 @@ export default function VideoPlayer({ media, onClose }) {
       const sources = [];
       const anyId = tmdbId || imdbId; // Fallback ID for sources that can use either
       
-      // #1 - VIDNEST (Needs tmdbId, fallback to anyId)
+      // #1 - VIDSRC (Needs imdbId, fallback to anyId)
       sources.push({
         name: '👑 VIP',
         url: isSeries 
           ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` 
           : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
-        quality: 'HD/4K',
-        id: 'vidnest'
+        quality: 'HD',
+        id: 'vidsrc'
       });
       
       // 🥈 #2 - 2EMBED (Secondary) - Use tmdbId, fallback to anyId
@@ -169,14 +169,14 @@ export default function VideoPlayer({ media, onClose }) {
         id: '2embed'
       });
       
-      // 🥉 #3 - VIDSRC (Needs imdbId, fallback to anyId)
+      // 🥉 #3 - VIDNEST (Needs tmdbId, fallback to anyId)
       sources.push({
-        name: '⭐ VidNest',
+        name: 'Elite👑',
         url: isSeries 
-          ?  `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
+          ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
           : `https://vidnest.fun/movie/${tmdbId || anyId}`,
-        quality: 'HD',
-        id: 'vidsrc'
+        quality: 'HD/4K',
+        id: 'vidnest'
       });
 
       // 🥇 #4 - SMASHYSTREAM (Primary) - Use imdbId, fallback to anyId
@@ -208,6 +208,12 @@ export default function VideoPlayer({ media, onClose }) {
           url: `https://autoembed.co/${isSeries ? 'tv' : 'movie'}/${tmdbId}`,
           quality: 'Auto',
           id: 'autoembed'
+        });
+        sources.push({
+          name: 'MovieWeb',
+          url: isSeries ? `https://movie-web.app/media/tv/${tmdbId}/${season}/${episode}` : `https://movie-web.app/media/movie/${tmdbId}`,
+          quality: '4K',
+          id: 'movieweb'
         });
       }
 

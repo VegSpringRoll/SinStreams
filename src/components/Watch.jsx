@@ -202,8 +202,8 @@ export default function Watch() {
 
       sources.push({
         name: '👑 VIP',
-        url: seriesFlag ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` : `https://vidnest.fun/movie/${tmdbId || anyId}`,
-        quality: 'HD/4K', id: 'vidnest'
+        url: seriesFlag ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
+        quality: 'HD', id: 'vidsrc'
       });
       sources.push({
         name: '⭐ 2Embed',
@@ -211,9 +211,9 @@ export default function Watch() {
         quality: 'HD', id: '2embed'
       });
       sources.push({
-        name: '⭐ VidSrc',
-        url: seriesFlag ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
-        quality: 'HD', id: 'vidsrc'
+        name: 'Elite👑',
+        url: seriesFlag ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` : `https://vidnest.fun/movie/${tmdbId || anyId}`,
+        quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
         name: '⭐ Premium',
