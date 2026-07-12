@@ -319,9 +319,8 @@ export default function Home() {
         background: "#080c14",
         minHeight: "100vh",
         paddingTop: 90,
-        paddingLeft: 32,
-        paddingRight: 32,
         paddingBottom: 40,
+        overflowX: "hidden",
       }}>
         {/* Hero Slider - Only show if there are movies */}
         {movies.length > 0 && (
@@ -334,7 +333,7 @@ export default function Home() {
         )}
 
         {/* ===== MOVIES SECTION ===== */}
-        <div style={{ marginLeft: -32, marginRight: -32, marginTop: movies.length > 0 ? 40 : 0 }}>
+        <div style={{ marginTop: movies.length > 0 ? 40 : 0 }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
@@ -379,7 +378,7 @@ export default function Home() {
         </div>
 
         {/* ===== SERIES SECTION ===== */}
-        <div style={{ marginLeft: -32, marginRight: -32, marginTop: 16 }}>
+        <div style={{ marginTop: 16 }}>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
@@ -433,6 +432,8 @@ export default function Home() {
         <div style={{
           marginTop: 60,
           paddingTop: 40,
+          paddingLeft: isMobile ? 16 : 32,
+          paddingRight: isMobile ? 16 : 32,
           borderTop: "1px solid rgba(255,255,255,0.08)",
         }}>
           
