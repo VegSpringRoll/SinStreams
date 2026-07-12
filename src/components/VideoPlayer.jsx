@@ -182,8 +182,8 @@ export default function VideoPlayer({ media, onClose }) {
         sources.push({
           name: 'God👑',
           url: isSeries
-            ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vidcore.net/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vidcore.org/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidcore.org/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
@@ -393,9 +393,11 @@ export default function VideoPlayer({ media, onClose }) {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 title={media.title}
               />
-              <button onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} style={styles.fullscreenBtn}>
-                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-              </button>
+              {sources[currentSource]?.id === 'vidsrcwtf' && (
+                <button onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} style={styles.fullscreenBtn}>
+                  {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+                </button>
+              )}
             </>
           )}
         </div>
