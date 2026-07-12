@@ -5,7 +5,7 @@ import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getAnime } from '../../services/mediaService'
-import { getLastWatched, clearLastWatched } from "../../services/Watchhistory";
+import { getLastWatched, clearLastWatched } from '../../services/watchHistory'
 import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw } from 'lucide-react'
 
 // Curated genre picks for the homepage — the dedicated /movies and /series
@@ -147,12 +147,15 @@ export default function Home() {
   // Continue Watching — resume the last-watched title at its saved point
   const handleResumeContinue = () => {
     if (!continueWatching) return;
-    navigate('/watch', {
+    const { media, season, episode } = continueWatching;
+    const type = media.type || 'movie';
+    const id = media._id || media.imdb_id || media.id;
+    navigate(`/watch/${type}/${id}`, {
       state: {
-        media: continueWatching.media,
+        media,
         autoPlay: true,
-        startSeason: continueWatching.season,
-        startEpisode: continueWatching.episode,
+        startSeason: season,
+        startEpisode: episode,
       }
     });
   };
