@@ -2,8 +2,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import MediaCard from "../components/MediaCard";
-import { Star, Clock, Calendar, ArrowLeft, Play, Monitor } from "lucide-react";
-import { getMovies , getShows} from "../../services/mediaService"
+import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv } from "lucide-react";
+import { getMovies, getShows } from "../../services/mediaService";
+import { saveLastWatched } from "../../services/watchHistory";
 
 const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
@@ -13,13 +14,16 @@ export default function Watch() {
   const navigate = useNavigate();
   const media = location.state?.media;
   const autoPlay = location.state?.autoPlay || false;
+  // Optional resume point passed from a "Continue Watching" card
+  const startSeason = location.state?.startSeason || null;
+  const startEpisode = location.state?.startEpisode || null;
 
   const [recommendations, setRecommendations] = useState([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
-  
+
   // Video source states
   const [sources, setSources] = useState([]);
   const [currentSource, setCurrentSource] = useState(0);
@@ -28,13 +32,13 @@ export default function Watch() {
   const [videoType, setVideoType] = useState(null);
   const [useDirect, setUseDirect] = useState(false);
   const [sourceErrors, setSourceErrors] = useState({});
-  const [autoSwitching, setAutoSwitching] = useState(false);
 
   // Season & Episode State
   const [currentSeason, setCurrentSeason] = useState(1);
   const [currentEpisode, setCurrentEpisode] = useState(1);
   const [seasons, setSeasons] = useState([]);
   const [episodes, setEpisodes] = useState([]);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
   const [totalEpisodes, setTotalEpisodes] = useState(0);
   const [showDetails, setShowDetails] = useState(null);
 
@@ -48,17 +52,32 @@ export default function Watch() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
+
     if (media) {
-      fetchShowDetails();
-      fetchStreamSources(media.imdb_id, 1, 1);
+      if (isSeries) {
+        fetchShowDetails();
+      } else {
+        fetchStreamSources(media.imdb_id, 1, 1);
+      }
       fetchRecommendations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [media]);
 
-  // Fetch show details for series
+  // Keep "Continue Watching" up to date with whatever's actually on screen.
+  useEffect(() => {
+    if (!media) return;
+    if (isSeries) {
+      if (!currentSeason || !currentEpisode) return;
+      const epName = episodes.find(e => e.episode_number === currentEpisode)?.name || null;
+      saveLastWatched(media, { season: currentSeason, episode: currentEpisode, episodeName: epName });
+    } else {
+      saveLastWatched(media, {});
+    }
+  }, [media, isSeries, currentSeason, currentEpisode, episodes]);
+
+  // Fetch show details for series (seasons list + resolves a resume point if provided)
   const fetchShowDetails = async () => {
-    if (!isSeries) return;
     try {
       const tmdbId = media._id || media.id;
       if (!tmdbId) return;
@@ -80,20 +99,32 @@ export default function Watch() {
       setSeasons(actualSeasons);
 
       if (actualSeasons.length > 0) {
-        setCurrentSeason(actualSeasons[0].season_number);
-        setTotalEpisodes(actualSeasons[0].episode_count);
-        fetchEpisodesForSeason(actualSeasons[0].season_number);
+        const requestedSeason = startSeason && actualSeasons.some(s => s.season_number === startSeason)
+          ? startSeason
+          : actualSeasons[0].season_number;
+
+        setCurrentSeason(requestedSeason);
+
+        const episodeList = await fetchEpisodesForSeason(requestedSeason);
+
+        const requestedEpisode = startEpisode && episodeList.some(e => e.episode_number === startEpisode)
+          ? startEpisode
+          : 1;
+
+        setCurrentEpisode(requestedEpisode);
+        fetchStreamSources(media.imdb_id, requestedSeason, requestedEpisode);
       }
     } catch (err) {
       console.log("Could not fetch show details:", err.message);
     }
   };
 
-  // Fetch episodes for a season
+  // Fetch episodes for a season (with stills/overview/runtime for the banner list)
   const fetchEpisodesForSeason = async (seasonNum) => {
     try {
+      setEpisodesLoading(true);
       const tmdbId = media._id || media.id;
-      if (!tmdbId) return;
+      if (!tmdbId) return [];
 
       const { data } = await axios.get(
         `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}`,
@@ -105,27 +136,38 @@ export default function Watch() {
         .map(ep => ({
           episode_number: ep.episode_number,
           name: ep.name || `Episode ${ep.episode_number}`,
+          overview: ep.overview || '',
+          still: ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : null,
+          runtime: ep.runtime || null,
         })) || [];
 
       setEpisodes(episodeList);
       setTotalEpisodes(episodeList.length);
+      return episodeList;
     } catch (err) {
       console.log("Could not fetch episodes:", err.message);
+      return [];
+    } finally {
+      setEpisodesLoading(false);
     }
   };
 
   // Handle season change
-  const handleSeasonChange = (seasonNum) => {
+  const handleSeasonChange = async (seasonNum) => {
+    if (seasonNum === currentSeason) return;
     setCurrentSeason(seasonNum);
     setCurrentEpisode(1);
-    fetchEpisodesForSeason(seasonNum);
+    await fetchEpisodesForSeason(seasonNum);
     fetchStreamSources(media.imdb_id, seasonNum, 1);
   };
 
   // Handle episode change
   const handleEpisodeChange = (episodeNum) => {
+    if (episodeNum === currentEpisode) return;
     setCurrentEpisode(episodeNum);
     fetchStreamSources(media.imdb_id, currentSeason, episodeNum);
+    // Scroll to the player so the switch feels immediate, especially on mobile
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Fetch streaming sources
@@ -135,10 +177,10 @@ export default function Watch() {
       setSourceErrors({});
       setUseDirect(false);
 
-      const isSeries = media.type === 'series' || media.type === 'tv';
+      const seriesFlag = media.type === 'series' || media.type === 'tv';
       const tmdbId = media._id || media.id;
       const anyId = imdbId || tmdbId;
-      const type = isSeries ? 'tv' : 'movie';
+      const type = seriesFlag ? 'tv' : 'movie';
 
       // Try direct video
       try {
@@ -157,33 +199,33 @@ export default function Watch() {
       }
 
       const sources = [];
-      
+
       sources.push({
         name: '👑 VIP',
-        url: isSeries ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` : `https://vidnest.fun/movie/${tmdbId || anyId}`,
+        url: seriesFlag ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` : `https://vidnest.fun/movie/${tmdbId || anyId}`,
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
         name: '⭐ 2Embed',
-        url: isSeries ? `https://www.2embed.cc/embedtv/${tmdbId || anyId}&s=${season}&e=${episode}` : `https://www.2embed.cc/embed/${tmdbId || anyId}`,
+        url: seriesFlag ? `https://www.2embed.cc/embedtv/${tmdbId || anyId}&s=${season}&e=${episode}` : `https://www.2embed.cc/embed/${tmdbId || anyId}`,
         quality: 'HD', id: '2embed'
       });
       sources.push({
         name: '⭐ VidSrc',
-        url: isSeries ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
+        url: seriesFlag ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
         quality: 'HD', id: 'vidsrc'
       });
       sources.push({
         name: '⭐ Premium',
-        url: isSeries ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
+        url: seriesFlag ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
         quality: 'HD', id: 'smashystream'
       });
 
       if (tmdbId) {
-        sources.push({ name: 'VidLink', url: isSeries ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
-        sources.push({ name: 'Embed.su', url: isSeries ? `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}` : `https://embed.su/embed/movie/${tmdbId}`, quality: 'HD', id: 'embedsu' });
-        sources.push({ name: 'AutoEmbed', url: `https://autoembed.co/${isSeries ? 'tv' : 'movie'}/${tmdbId}`, quality: 'Auto', id: 'autoembed' });
-        sources.push({ name: 'MovieWeb', url: isSeries ? `https://movie-web.app/media/tv/${tmdbId}/${season}/${episode}` : `https://movie-web.app/media/movie/${tmdbId}`, quality: '4K', id: 'movieweb' });
+        sources.push({ name: 'VidLink', url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
+        sources.push({ name: 'Embed.su', url: seriesFlag ? `https://embed.su/embed/tv/${tmdbId}/${season}/${episode}` : `https://embed.su/embed/movie/${tmdbId}`, quality: 'HD', id: 'embedsu' });
+        sources.push({ name: 'AutoEmbed', url: `https://autoembed.co/${seriesFlag ? 'tv' : 'movie'}/${tmdbId}`, quality: 'Auto', id: 'autoembed' });
+        sources.push({ name: 'MovieWeb', url: seriesFlag ? `https://movie-web.app/media/tv/${tmdbId}/${season}/${episode}` : `https://movie-web.app/media/movie/${tmdbId}`, quality: '4K', id: 'movieweb' });
       }
 
       setSources(sources);
@@ -197,26 +239,26 @@ export default function Watch() {
 
   // Fetch recommendations
   const fetchRecommendations = async () => {
-  try {
-    setLoadingRecs(true);
-    
-    const [movies, series] = await Promise.all([
-      getMovies(),
-      getShows()
-    ]);
+    try {
+      setLoadingRecs(true);
 
-    const recs = [...(movies || []), ...(series || [])]
-      .filter(m => m._id !== media._id && m.imdb_id !== media.imdb_id)
-      .slice(0, 12);
+      const [movies, series] = await Promise.all([
+        getMovies(),
+        getShows()
+      ]);
 
-    setRecommendations(recs);
-  } catch (err) {
-    console.error("Recommendations error:", err);
-    setRecommendations([]);
-  } finally {
-    setLoadingRecs(false);
-  }
-};
+      const recs = [...(movies || []), ...(series || [])]
+        .filter(m => m._id !== media._id && m.imdb_id !== media.imdb_id)
+        .slice(0, 12);
+
+      setRecommendations(recs);
+    } catch (err) {
+      console.error("Recommendations error:", err);
+      setRecommendations([]);
+    } finally {
+      setLoadingRecs(false);
+    }
+  };
 
   if (!media) {
     return (
@@ -266,30 +308,11 @@ export default function Watch() {
 
       {/* CONTROLS BELOW VIDEO */}
       <div className="controls-section" style={styles.controlsSection}>
-        {/* Episode Selector for Series */}
         {isSeries && (
           <div className="episode-bar" style={styles.episodeBar}>
             <div style={styles.episodeInfo}>
               <span style={styles.episodeLabel}>Now Playing</span>
               <span style={styles.episodeValue}>Season {currentSeason} • {currentEpisodeName}</span>
-            </div>
-            <div className="episode-controls" style={styles.episodeControls}>
-              <div style={styles.selectGroup}>
-                <label style={styles.selectLabel}>Season</label>
-                <select value={currentSeason} onChange={(e) => handleSeasonChange(Number(e.target.value))} style={styles.select}>
-                  {seasons.map(s => (
-                    <option key={s.season_number} value={s.season_number}>Season {s.season_number} ({s.episode_count} eps)</option>
-                  ))}
-                </select>
-              </div>
-              <div className="select-group" style={styles.selectGroup}>
-                <label style={styles.selectLabel}>Episode</label>
-                <select value={currentEpisode} onChange={(e) => handleEpisodeChange(Number(e.target.value))} style={styles.select}>
-                  {episodes.map(ep => (
-                    <option key={ep.episode_number} value={ep.episode_number}>E{ep.episode_number} - {ep.name}</option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
         )}
@@ -321,6 +344,96 @@ export default function Watch() {
           </div>
         )}
       </div>
+
+      {/* Episodes — season pills + playable banner list (series only) */}
+      {isSeries && (
+        <div className="watch-episodes" style={{ ...styles.episodesSection, padding: isMobile ? '24px 16px' : '32px' }}>
+          <div style={styles.episodesHeader}>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? 17 : 20, margin: 0 }}>Episodes</h2>
+            {totalEpisodes > 0 && <span style={styles.episodesCount}>{totalEpisodes} episodes</span>}
+          </div>
+
+          {seasons.length > 1 && (
+            <div className="season-pills hide-scrollbar" style={styles.seasonPillRow}>
+              {seasons.map(s => (
+                <button
+                  key={s.season_number}
+                  onClick={() => handleSeasonChange(s.season_number)}
+                  style={{
+                    ...styles.seasonPill,
+                    ...(s.season_number === currentSeason ? styles.seasonPillActive : {})
+                  }}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={styles.episodeList}>
+            {episodesLoading ? (
+              [1,2,3].map(i => (
+                <div key={i} style={styles.episodeCard}>
+                  <div className="mv-sk" style={{ ...styles.episodeThumbWrap, background: '#1a2235' }} />
+                  <div style={{ flex: 1 }}>
+                    <div className="mv-sk" style={{ width: '60%', height: 14, borderRadius: 4, marginBottom: 8 }} />
+                    <div className="mv-sk" style={{ width: '90%', height: 12, borderRadius: 4 }} />
+                  </div>
+                </div>
+              ))
+            ) : episodes.length > 0 ? (
+              episodes.map(ep => {
+                const isActive = ep.episode_number === currentEpisode;
+                return (
+                  <div
+                    key={ep.episode_number}
+                    className="episode-card"
+                    onClick={() => handleEpisodeChange(ep.episode_number)}
+                    style={{
+                      ...styles.episodeCard,
+                      ...(isActive ? styles.episodeCardActive : {}),
+                    }}
+                  >
+                    <div style={styles.episodeThumbWrap}>
+                      {ep.still ? (
+                        <img src={ep.still} alt={ep.name} style={styles.episodeThumb} loading="lazy" />
+                      ) : (
+                        <div style={styles.episodeThumbFallback}>
+                          <Tv size={isMobile ? 20 : 26} color="#3a4560" />
+                        </div>
+                      )}
+                      <div style={styles.episodeNumBadge}>{ep.episode_number}</div>
+                      {!isActive && (
+                        <div className="episode-play-overlay" style={styles.episodePlayOverlay}>
+                          <Play size={18} fill="#fff" color="#fff" />
+                        </div>
+                      )}
+                      {isActive && (
+                        <div style={styles.nowPlayingBadge}>
+                          <span style={styles.nowPlayingDot} /> Playing
+                        </div>
+                      )}
+                      {ep.runtime && <div style={styles.episodeRuntimeBadge}>{ep.runtime}m</div>}
+                    </div>
+                    <div style={styles.episodeInfoCol}>
+                      <div style={styles.episodeTitleText}>
+                        {ep.episode_number}. {ep.name}
+                      </div>
+                      {ep.overview && (
+                        <p style={styles.episodeOverview}>{ep.overview}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p style={{ color: '#666', fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>
+                No episode data available for this season.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Movie Details */}
       <div className="watch-details" style={styles.detailsSection}>
@@ -386,10 +499,31 @@ export default function Watch() {
         )}
       </div>
 
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <style>{WATCH_CSS}</style>
     </div>
   );
 }
+
+const WATCH_CSS = `
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes wv-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .mv-sk {
+    background: linear-gradient(90deg, #0d1420 25%, #1a2235 50%, #0d1420 75%);
+    background-size: 200% 100%;
+    animation: wv-shimmer 1.4s ease infinite;
+  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+  .episode-card { transition: background 0.2s ease, transform 0.15s ease; }
+  .episode-card:hover { background: rgba(255,255,255,0.04); }
+  @media (hover: hover) and (pointer: fine) {
+    .episode-card:hover .episode-play-overlay { opacity: 1; }
+  }
+  .episode-play-overlay { opacity: 0; transition: opacity 0.2s ease; }
+
+  @keyframes wv-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+`;
 
 const styles = {
   container: {
@@ -490,36 +624,6 @@ const styles = {
     fontSize: 15,
     fontWeight: 600,
   },
-  episodeControls: {
-    display: 'flex',
-    gap: 12,
-    alignItems: 'flex-end',
-  },
-  selectGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  selectLabel: {
-    color: '#666',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 10,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  select: {
-    background: '#1a2235',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: 6,
-    padding: '8px 12px',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: 'pointer',
-    outline: 'none',
-  },
   sourceBar: {
     display: 'flex',
     alignItems: 'center',
@@ -559,6 +663,171 @@ const styles = {
     color: '#fff',
     border: '1px solid #e50914',
   },
+
+  // ── Episodes section ──
+  episodesSection: {
+    maxWidth: 1200,
+    margin: '0 auto',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+  },
+  episodesHeader: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  episodesCount: {
+    color: '#3a4560',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 12,
+    fontWeight: 500,
+  },
+  seasonPillRow: {
+    display: 'flex',
+    gap: 8,
+    overflowX: 'auto',
+    paddingBottom: 4,
+    marginBottom: 20,
+  },
+  seasonPill: {
+    flexShrink: 0,
+    padding: '8px 18px',
+    borderRadius: 20,
+    background: '#12192a',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#8892a4',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    transition: 'all 0.2s',
+  },
+  seasonPillActive: {
+    background: '#e8b84b',
+    borderColor: '#e8b84b',
+    color: '#080c14',
+  },
+  episodeList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
+  episodeCard: {
+    display: 'flex',
+    gap: 14,
+    padding: 10,
+    borderRadius: 10,
+    cursor: 'pointer',
+    alignItems: 'flex-start',
+  },
+  episodeCardActive: {
+    background: 'rgba(232,184,75,0.08)',
+    border: '1px solid rgba(232,184,75,0.25)',
+  },
+  episodeThumbWrap: {
+    position: 'relative',
+    flexShrink: 0,
+    width: 140,
+    aspectRatio: '16/9',
+    borderRadius: 8,
+    overflow: 'hidden',
+    background: '#0d1420',
+  },
+  episodeThumb: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  episodeThumbFallback: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg, #12192a, #0a0f1a)',
+  },
+  episodeNumBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    background: 'rgba(0,0,0,0.75)',
+    color: '#fff',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 11,
+    fontWeight: 700,
+    padding: '2px 7px',
+    borderRadius: 5,
+  },
+  episodeRuntimeBadge: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    background: 'rgba(0,0,0,0.75)',
+    color: '#ccc',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 6px',
+    borderRadius: 4,
+  },
+  episodePlayOverlay: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0,0,0,0.35)',
+  },
+  nowPlayingBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    background: '#e8b84b',
+    color: '#080c14',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  nowPlayingDot: {
+    width: 5,
+    height: 5,
+    borderRadius: '50%',
+    background: '#080c14',
+    animation: 'wv-pulse 1.4s ease infinite',
+  },
+  episodeInfoCol: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: 2,
+  },
+  episodeTitleText: {
+    color: '#e8eaf0',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 14,
+    fontWeight: 600,
+    marginBottom: 4,
+  },
+  episodeOverview: {
+    color: '#6878a0',
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 12.5,
+    lineHeight: 1.5,
+    margin: 0,
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  },
+
   detailsSection: {
     padding: '32px',
     maxWidth: 1200,
