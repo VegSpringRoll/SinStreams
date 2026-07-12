@@ -4,7 +4,7 @@ import axios from "axios";
 import MediaCard from "../components/MediaCard";
 import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv } from "lucide-react";
 import { getMovies, getShows } from "../../services/mediaService";
-import { saveLastWatched } from "../../services/watchHistory";
+import { saveLastWatched } from "../../services/Watchhistory";
 
 const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
