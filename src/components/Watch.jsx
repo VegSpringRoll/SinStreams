@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MediaCard from "../components/MediaCard";
-import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize } from "lucide-react";
+import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize, Minimize } from "lucide-react";
 import { getMovies, getShows } from "../../services/mediaService";
 import { saveLastWatched } from "../../services/Watchhistory";
 
@@ -33,14 +33,33 @@ export default function Watch() {
   const [useDirect, setUseDirect] = useState(false);
   const [sourceErrors, setSourceErrors] = useState({});
   const videoWrapperRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleFullscreen = () => {
     const el = videoWrapperRef.current;
     if (!el) return;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
-    else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
+      else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    }
   };
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+    };
+  }, []);
 
   // Season & Episode State
   const [currentSeason, setCurrentSeason] = useState(1);
@@ -230,7 +249,7 @@ export default function Watch() {
       });
 
       sources.push({
-        name: 'VIP👑',
+        name: 'Fastest⚡',
         url: seriesFlag ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
         quality: 'HD', id: 'vidsrc'
       });
@@ -331,10 +350,10 @@ export default function Watch() {
             {!useDirect && (
               <button
                 onClick={handleFullscreen}
-                title="Fullscreen"
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 style={styles.fullscreenBtn}
               >
-                <Maximize size={16} />
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
             )}
           </div>
