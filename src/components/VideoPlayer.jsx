@@ -153,8 +153,8 @@ export default function VideoPlayer({ media, onClose }) {
       sources.push({
         name: '👑 VIP',
         url: isSeries 
-          ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
-          : `https://vidnest.fun/movie/${tmdbId || anyId}`,
+          ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` 
+          : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
         quality: 'HD/4K',
         id: 'vidnest'
       });
@@ -171,10 +171,10 @@ export default function VideoPlayer({ media, onClose }) {
       
       // 🥉 #3 - VIDSRC (Needs imdbId, fallback to anyId)
       sources.push({
-        name: '⭐ VidSrc',
+        name: '⭐ VidNest',
         url: isSeries 
-          ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` 
-          : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
+          ?  `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
+          : `https://vidnest.fun/movie/${tmdbId || anyId}`,
         quality: 'HD',
         id: 'vidsrc'
       });
@@ -208,12 +208,6 @@ export default function VideoPlayer({ media, onClose }) {
           url: `https://autoembed.co/${isSeries ? 'tv' : 'movie'}/${tmdbId}`,
           quality: 'Auto',
           id: 'autoembed'
-        });
-        sources.push({
-          name: 'MovieWeb',
-          url: isSeries ? `https://movie-web.app/media/tv/${tmdbId}/${season}/${episode}` : `https://movie-web.app/media/movie/${tmdbId}`,
-          quality: '4K',
-          id: 'movieweb'
         });
       }
 
