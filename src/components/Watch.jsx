@@ -233,8 +233,8 @@ export default function Watch() {
         sources.push({
           name: 'God👑',
           url: seriesFlag
-            ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vidcore.net/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vidcore.org/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidcore.org/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
@@ -347,7 +347,7 @@ export default function Watch() {
                 title={media.title}
               />
             )}
-            {!useDirect && (
+            {!useDirect && sources[currentSource]?.id === 'vidsrcwtf' && (
               <button
                 onClick={handleFullscreen}
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
