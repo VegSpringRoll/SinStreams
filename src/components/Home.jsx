@@ -1,10 +1,93 @@
-import { useState, useEffect } from 'react'
-import { getMovies, getShows } from '../../services/mediaService'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { getMovies, getShows, getMoviesByGenre, getShowsByGenre } from '../../services/mediaService'
 import MediaCard from '../components/MediaCard'
 import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { getAnime } from '../../services/mediaService'
+import { Film, Tv, TrendingUp, Zap, ChevronRight, ChevronLeft } from 'lucide-react'
+
+// Curated genre picks for the homepage — the dedicated /movies and /series
+// pages cover the full genre list, so Home only teases a handful of each.
+const MOVIE_HOME_GENRES = [
+  { name: 'Action',           icon: Zap, gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
+  { name: 'Comedy',                      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Science Fiction',             gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
+  { name: 'Horror',                      gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
+];
+
+const SERIES_HOME_GENRES = [
+  { name: 'Drama',                       gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
+  { name: 'Comedy',                      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
+  { name: 'Action & Adventure',          gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
+  { name: 'Crime',                       gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
+];
+
+// ── ContentRow — Netflix-style horizontal row shared by the Movies & Series
+//    sections on Home. Same pattern as MovieRow/SeriesRow in Movies.jsx / Series.jsx. ──
+function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobile }) {
+  const trackRef = useRef(null);
+
+  const scrollByAmount = (dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: el.clientWidth * 0.85 * dir, behavior: 'smooth' });
+  };
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="hm-row" style={{ marginBottom: isFirst ? 24 : 32 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: isMobile ? '0 16px' : '0 32px', marginBottom: 12,
+      }}>
+        {Icon && (
+          <div style={{
+            width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+            background: gradient || 'rgba(255,255,255,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={12} color="#fff" />
+          </div>
+        )}
+        <h3 style={{
+          fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 14 : 15.5,
+          fontWeight: 600, color: '#c8d0e0', margin: 0, letterSpacing: '-0.1px',
+        }}>{title}</h3>
+      </div>
+
+      <div className="hm-row-wrap" style={{ position: 'relative' }}>
+        {!isMobile && (
+          <button aria-label="Scroll left" className="hm-arrow hm-arrow-l" onClick={() => scrollByAmount(-1)}>
+            <ChevronLeft size={20} />
+          </button>
+        )}
+
+        <div
+          ref={trackRef}
+          style={{
+            display: 'flex', gap: isMobile ? 10 : 12, overflowX: 'auto',
+            padding: isMobile ? '4px 16px 10px' : '4px 32px 12px',
+            scrollbarWidth: 'none', scrollSnapType: 'x mandatory',
+          }}
+        >
+          {items.map((item, i) => (
+            <div key={item._id || item.imdb_id || i} className="hm-card" style={{ flexShrink: 0, scrollSnapAlign: 'start' }}>
+              <MediaCard media={item} type={type} index={i} size={isMobile ? 'sm' : 'md'} />
+            </div>
+          ))}
+        </div>
+
+        {!isMobile && (
+          <button aria-label="Scroll right" className="hm-arrow hm-arrow-r" onClick={() => scrollByAmount(1)}>
+            <ChevronRight size={20} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [watchlist, setWatchlist] = useState([])
@@ -16,8 +99,20 @@ export default function Home() {
   const [playingMedia, setPlayingMedia] = useState(null)
   const [showQR, setShowQR] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [movieGenrePools, setMovieGenrePools] = useState({})
+  const [seriesGenrePools, setSeriesGenrePools] = useState({})
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  )
 
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     if (location.state?.playMedia) {
@@ -103,6 +198,45 @@ export default function Home() {
     fetchSeries()
   }, [])
 
+  // Fetch curated genre pools for the Movies & Series rows
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGenrePools = async () => {
+      const [movieResults, seriesResults] = await Promise.all([
+        Promise.all(MOVIE_HOME_GENRES.map(g =>
+          getMoviesByGenre(g.tmdbId).then(data => [g.name, Array.isArray(data) ? data : []])
+        )),
+        Promise.all(SERIES_HOME_GENRES.map(g =>
+          getShowsByGenre(g.tmdbId).then(data => [g.name, Array.isArray(data) ? data : []])
+        )),
+      ]);
+
+      if (cancelled) return;
+      setMovieGenrePools(Object.fromEntries(movieResults));
+      setSeriesGenrePools(Object.fromEntries(seriesResults));
+    };
+
+    loadGenrePools().catch(err => console.error('Failed to load genre pools:', err));
+
+    return () => { cancelled = true; };
+  }, [])
+
+  // Top-rated slices used for the "Trending Now" row in each section
+  const trendingMoviesSorted = useMemo(() =>
+    [...movies].sort((a, b) => {
+      const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
+      const rb = typeof b.rating === 'object' ? b.rating.percentage / 10 : (b.rating || 0);
+      return rb - ra;
+    }).slice(0, 20), [movies]);
+
+  const trendingSeriesSorted = useMemo(() =>
+    [...series].sort((a, b) => {
+      const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
+      const rb = typeof b.rating === 'object' ? b.rating.percentage / 10 : (b.rating || 0);
+      return rb - ra;
+    }).slice(0, 20), [series]);
+
   // Loading state
   if (loading) {
     return (
@@ -180,6 +314,7 @@ export default function Home() {
 
   return (
     <>
+      <style>{HOME_ROW_CSS}</style>
       <div className="page-content" style={{
         background: "#080c14",
         minHeight: "100vh",
@@ -198,97 +333,101 @@ export default function Home() {
           />
         )}
 
-        {/* Trending Movies Section */}
-        <h2 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          color: "#c8d0e0",
-          marginBottom: 20,
-          fontSize: 20,
-          fontWeight: 600,
-          marginTop: movies.length > 0 ? 40 : 0,
-        }}>
-          🎬 Trending Movies
-        </h2>
-
-        {movies.length > 0 ? (
-          <div className="media-grid" style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: "20px",
-            paddingBottom: "40px",
-          }}>
-            {movies.map((movie, i) => (
-              <MediaCard
-                key={movie._id || movie.imdb_id || i}
-                media={movie}
-                type="movie"
-                index={i}
-                inList={watchlist.includes(movie._id)}
-                onAddList={(id) => toggleWatchlist(id)}
-                onPlay={handlePlay}
-              />
-            ))}
-          </div>
-        ) : (
-          <div style={{ 
-            padding: "40px 0", 
-            textAlign: "center",
-            color: "#888", 
-            fontFamily: "'DM Sans', sans-serif" 
-          }}>
-            <p style={{ fontSize: 16, marginBottom: 8 }}>🎬 No movies available right now.</p>
-            <p style={{ fontSize: 14, color: "#555" }}>Check back later for new releases!</p>
-          </div>
-        )}
-
-        {/* Trending Series Section */}
-        <h2 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          color: "#c8d0e0",
-          marginBottom: 20,
-          fontSize: 20,
-          fontWeight: 600,
-          marginTop: 20,
-        }}>
-          📺 Popular Series
-        </h2>
-
-        {loadingSeries ? (
-          <div style={{ padding: "40px 0", textAlign: "center" }}>
-            <p style={{ color: "#888", fontFamily: "'DM Sans', sans-serif", fontSize: 16 }}>
-              Loading series...
-            </p>
-          </div>
-        ) : series.length > 0 ? (
+        {/* ===== MOVIES SECTION ===== */}
+        <div style={{ marginLeft: -32, marginRight: -32, marginTop: movies.length > 0 ? 40 : 0 }}>
           <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: "20px",
-            paddingBottom: "40px",
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
           }}>
-            {series.map((show, i) => (
-              <MediaCard
-                key={show._id || show.imdb_id || i}
-                media={show}
-                type="series"
-                index={i}
-                inList={watchlist.includes(show._id)}
-                onAddList={(id) => toggleWatchlist(id)}
-                onPlay={handlePlay}
-              />
-            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Film size={18} color="#e8b84b" strokeWidth={1.5} />
+              <h2 style={{
+                fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
+                fontWeight: 900, color: '#e8eaf0', margin: 0, letterSpacing: '-0.3px',
+              }}>Movies</h2>
+            </div>
+            <button
+              onClick={() => navigate('/movies')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+                color: '#6878a0', fontWeight: 500, padding: 0,
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#e8b84b'}
+              onMouseLeave={e => e.currentTarget.style.color = '#6878a0'}
+            >
+              Explore All <ChevronRight size={14} />
+            </button>
           </div>
-        ) : (
-          <div style={{ 
-            padding: "40px 0", 
-            textAlign: "center",
-            color: "#888", 
-            fontFamily: "'DM Sans', sans-serif" 
+
+          {movies.length > 0 ? (
+            <>
+              <ContentRow title="Trending Now" items={trendingMoviesSorted} type="movie" icon={TrendingUp}
+                gradient="linear-gradient(135deg, #e8b84b, #e05fa0)" isFirst isMobile={isMobile} />
+              {MOVIE_HOME_GENRES.map(g => (
+                <ContentRow key={g.name} title={g.name} items={movieGenrePools[g.name]} type="movie"
+                  icon={g.icon} gradient={g.gradient} isMobile={isMobile} />
+              ))}
+            </>
+          ) : (
+            <div style={{ padding: "40px 16px", textAlign: "center", color: "#888", fontFamily: "'DM Sans', sans-serif" }}>
+              <p style={{ fontSize: 16, marginBottom: 8 }}>🎬 No movies available right now.</p>
+              <p style={{ fontSize: 14, color: "#555" }}>Check back later for new releases!</p>
+            </div>
+          )}
+        </div>
+
+        {/* ===== SERIES SECTION ===== */}
+        <div style={{ marginLeft: -32, marginRight: -32, marginTop: 16 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
           }}>
-            <p style={{ fontSize: 16, marginBottom: 8 }}>📺 No series available right now.</p>
-            <p style={{ fontSize: 14, color: "#555" }}>Popular shows will appear here!</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Tv size={18} color="#5ba4d4" strokeWidth={1.5} />
+              <h2 style={{
+                fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
+                fontWeight: 900, color: '#e8eaf0', margin: 0, letterSpacing: '-0.3px',
+              }}>Series</h2>
+            </div>
+            <button
+              onClick={() => navigate('/series')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+                color: '#6878a0', fontWeight: 500, padding: 0,
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#5ba4d4'}
+              onMouseLeave={e => e.currentTarget.style.color = '#6878a0'}
+            >
+              Explore All <ChevronRight size={14} />
+            </button>
           </div>
-        )}
+
+          {loadingSeries ? (
+            <div style={{ padding: "40px 0", textAlign: "center" }}>
+              <p style={{ color: "#888", fontFamily: "'DM Sans', sans-serif", fontSize: 16 }}>
+                Loading series...
+              </p>
+            </div>
+          ) : series.length > 0 ? (
+            <>
+              <ContentRow title="Trending Now" items={trendingSeriesSorted} type="series" icon={TrendingUp}
+                gradient="linear-gradient(135deg, #5ba4d4, #e05fa0)" isFirst isMobile={isMobile} />
+              {SERIES_HOME_GENRES.map(g => (
+                <ContentRow key={g.name} title={g.name} items={seriesGenrePools[g.name]} type="series"
+                  icon={g.icon} gradient={g.gradient} isMobile={isMobile} />
+              ))}
+            </>
+          ) : (
+            <div style={{ padding: "40px 16px", textAlign: "center", color: "#888", fontFamily: "'DM Sans', sans-serif" }}>
+              <p style={{ fontSize: 16, marginBottom: 8 }}>📺 No series available right now.</p>
+              <p style={{ fontSize: 14, color: "#555" }}>Popular shows will appear here!</p>
+            </div>
+          )}
+        </div>
 
         {/* ===== FOOTER SECTION ===== */}
         <div style={{
@@ -545,3 +684,35 @@ export default function Home() {
     </>
   )
 }
+
+const HOME_ROW_CSS = `
+  @keyframes hm-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  /* Netflix-style hover zoom on cards (desktop only, mouse-capable) */
+  @media (hover: hover) and (pointer: fine) {
+    .hm-card {
+      transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transform-origin: center center;
+    }
+    .hm-card:hover {
+      transform: scale(1.08);
+      z-index: 5;
+      position: relative;
+    }
+  }
+
+  /* Row scroll arrows */
+  .hm-arrow {
+    position: absolute; top: 0; bottom: 12px;
+    width: 44px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(90deg, #080c14 10%, transparent);
+    border: none; color: #e8eaf0; cursor: pointer;
+    opacity: 0; transition: opacity 0.2s ease;
+    z-index: 6;
+  }
+  .hm-arrow-r { right: 0; background: linear-gradient(270deg, #080c14 10%, transparent); }
+  .hm-arrow-l { left: 0; }
+  .hm-row:hover .hm-arrow { opacity: 1; }
+
+  .hm-row-wrap ::-webkit-scrollbar { height: 0; width: 0; }
+`;
