@@ -149,27 +149,25 @@ export default function VideoPlayer({ media, onClose }) {
       const sources = [];
       const anyId = tmdbId || imdbId; // Fallback ID for sources that can use either
 
-      // #1 - VIDSRC.WTF Multi Server (accepts tmdbId or imdbId)
-      sources.push({
-        name: 'God Server👑',
-        url: isSeries
-          ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
-        quality: 'HD',
-        id: 'vidsrcwtf'
-      });
-
-      // #2 - VIDLUX (requires tmdbId)
+      // #1 - VIDLUX
       if (tmdbId) {
         sources.push({
-          name: 'DemiGod👑',
-          url: isSeries
+          name: 'God👑',
+          url: seriesFlag
             ? `https://vidlux.xyz/embed/tv/${tmdbId}/${season}/${episode}`
             : `https://vidlux.xyz/embed/movie/${tmdbId}`,
-          quality: 'HD',
-          id: 'vidlux'
+          quality: 'HD', id: 'vidlux'
         });
       }
+
+      // #2 - VIDSRC.WTF 
+      sources.push({
+        name: 'DemiGod👑',
+        url: seriesFlag
+          ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
+        quality: 'HD', id: 'vidsrcwtf'
+      });
 
       // #3 - VIDSRC (Needs imdbId, fallback to anyId)
       sources.push({
