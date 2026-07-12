@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { Maximize } from 'lucide-react';
 
 const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
@@ -10,6 +11,14 @@ export default function VideoPlayer({ media, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const iframeRef = useRef(null);
+
+  const handleFullscreen = () => {
+    const el = iframeRef.current;
+    if (!el) return;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
+    else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
+  };
 
   // Direct video state
   const [directUrl, setDirectUrl] = useState(null);
@@ -356,14 +365,19 @@ export default function VideoPlayer({ media, onClose }) {
               <source src={directUrl} type={videoType === 'm3u8' ? 'application/x-mpegURL' : 'video/mp4'} />
             </video>
           ) : (
-            <iframe
-              ref={iframeRef}
-              src={sources[currentSource]?.url}
-              style={styles.video}
-              allowFullScreen
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              title={media.title}
-            />
+            <>
+              <iframe
+                ref={iframeRef}
+                src={sources[currentSource]?.url}
+                style={styles.video}
+                allowFullScreen
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                title={media.title}
+              />
+              <button onClick={handleFullscreen} title="Fullscreen" style={styles.fullscreenBtn}>
+                <Maximize size={16} />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -389,6 +403,13 @@ const styles = {
   },
   video: {
     width: '100%', height: '100%', border: 'none',
+  },
+  fullscreenBtn: {
+    position: 'absolute', bottom: 16, right: 16, zIndex: 5,
+    width: 36, height: 36, borderRadius: 8,
+    background: 'rgba(10,10,10,0.7)', border: '1px solid rgba(255,255,255,0.15)',
+    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer',
   },
   closeBtn: {
     position: 'absolute', top: '15px', right: '15px', zIndex: 20,

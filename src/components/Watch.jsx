@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import MediaCard from "../components/MediaCard";
-import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv } from "lucide-react";
+import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize } from "lucide-react";
 import { getMovies, getShows } from "../../services/mediaService";
 import { saveLastWatched } from "../../services/Watchhistory";
 
@@ -32,6 +32,15 @@ export default function Watch() {
   const [videoType, setVideoType] = useState(null);
   const [useDirect, setUseDirect] = useState(false);
   const [sourceErrors, setSourceErrors] = useState({});
+  const videoWrapperRef = useRef(null);
+
+  const handleFullscreen = () => {
+    const el = videoWrapperRef.current;
+    if (!el) return;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
+    else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
+  };
 
   // Season & Episode State
   const [currentSeason, setCurrentSeason] = useState(1);
@@ -305,7 +314,7 @@ export default function Watch() {
             <p style={{ color: '#888', fontFamily: "'DM Sans', sans-serif", marginTop: 16 }}>Loading video sources...</p>
           </div>
         ) : (
-          <div style={styles.videoWrapper}>
+          <div ref={videoWrapperRef} style={{ ...styles.videoWrapper, position: 'relative' }}>
             {useDirect && directUrl ? (
               <video controls autoPlay style={styles.video}>
                 <source src={directUrl} type={videoType === 'm3u8' ? 'application/x-mpegURL' : 'video/mp4'} />
@@ -318,6 +327,15 @@ export default function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 title={media.title}
               />
+            )}
+            {!useDirect && (
+              <button
+                onClick={handleFullscreen}
+                title="Fullscreen"
+                style={styles.fullscreenBtn}
+              >
+                <Maximize size={16} />
+              </button>
             )}
           </div>
         )}
@@ -606,6 +624,22 @@ const styles = {
     width: '100%',
     height: '100%',
     border: 'none',
+  },
+  fullscreenBtn: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    background: 'rgba(10,10,10,0.7)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    zIndex: 5,
   },
   controlsSection: {
     background: '#0a0f1a',
