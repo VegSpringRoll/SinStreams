@@ -13,19 +13,7 @@ export default function VideoPlayer({ media, onClose }) {
   const iframeRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const handleFullscreen = () => {
-    const el = iframeRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
-      else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
-    } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      else if (document.msExitFullscreen) document.msExitFullscreen();
-    }
-  };
+
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -182,8 +170,8 @@ export default function VideoPlayer({ media, onClose }) {
         sources.push({
           name: 'God👑',
           url: isSeries
-            ? `https://vidsrc-embed.su/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vidsrc-embed.su/embed/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vidsrc-embed.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidsrc-embed.ru/embed/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
@@ -393,11 +381,6 @@ export default function VideoPlayer({ media, onClose }) {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 title={media.title}
               />
-              {['vidsrcwtf'].includes(sources[currentSource]?.id) && (
-                <button onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} style={styles.fullscreenBtn}>
-                  {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                </button>
-              )}
             </>
           )}
         </div>
