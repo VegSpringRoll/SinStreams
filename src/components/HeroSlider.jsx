@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Plus, Check, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // ─── Type config ──────────────────────────────────────────────────────────────
@@ -45,12 +45,18 @@ const DEFAULT_SLIDES = [
 
 const AUTOPLAY_INTERVAL = 7000;
 
+// Serve a lighter backdrop size on mobile — 'original' TMDB images can be
+// several MB, which is wasteful (and slow) on phone connections.
+const getBackdrop = (url, mobile) => {
+  if (!url) return url;
+  if (!url.includes("image.tmdb.org/t/p/")) return url;
+  return url.replace(/\/t\/p\/(w\d+|original)\//, `/t/p/${mobile ? "w1280" : "original"}/`);
+};
+
 export default function HeroSlider({
   slides     = DEFAULT_SLIDES,
   autoPlay   = true,
-  onAddList,
-  watchlist  = [],
-  onPlay,  // 🆕 NEW PROP
+  onPlay,
 }) {
   if (!slides || slides.length === 0) {
     return <div style={{ height: "100vh", background: "#080c14" }} />;
@@ -77,7 +83,6 @@ useEffect(() => {
 
   const slide    = slides[current];
   const cfg      = TYPE_CONFIG[slide?.type] || TYPE_CONFIG.movie;
-  const inList   = watchlist.includes(slide?._id);
   const quality = slide.torrents?.["2160p"] ? "2160p" : slide.torrents?.["1080p"] ? "1080p" : slide.torrents?.["720p"] ? "720p" : null;
   const score = slide?.rating?.percentage ? (slide.rating.percentage / 10).toFixed(1) : null;
 
@@ -124,48 +129,11 @@ useEffect(() => {
 
   // 🎬 Handle Watch - Navigate to Watch page
   const handleWatch = () => {
-  const mediaId = slide._id || slide.imdb_id;
-  let mediaType = slide.type;
-  if (mediaType === 'series') mediaType = 'tv';
-  
-  // Navigate to Watch page
-  navigate(`/details/${mediaType}/${mediaId}`);
-  // Or if using navigate:
-  // navigate(`/watch/${mediaType}/${mediaId}`, { state: { media: slide } });
-};
-
-// Watch List add
-const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
-
-const handleWatchlist = async () => {
-    if (!user) return alert("Please sign in");
-    
-    try {
-      if (inWatchlist) {
-        await axios.delete(`${BACKEND_URL}/user/watchlist/${user.id}/${media._id}`);
-      } else {
-        await axios.post(`${BACKEND_URL}/user/watchlist`, {
-          clerkId: user.id,
-          media: {
-            _id: media._id,
-            imdb_id: media.imdb_id,
-            type: media.type,
-            title: media.title,
-            images: { poster: media.images?.poster }
-          }
-        });
-      }
-      setInWatchlist(!inWatchlist);
-    } catch (err) {
-      console.error("Watchlist error:", err);
-    }
+    const mediaId = slide._id || slide.imdb_id;
+    let mediaType = slide.type;
+    if (mediaType === 'series') mediaType = 'tv';
+    navigate(`/details/${mediaType}/${mediaId}`);
   };
-
-  const handleMore  = () => {
-    console.log("More info for:", slide.title);
-  };
-
-  const handleList = () => onAddList?.(slide._id);
 
   const variants = {
     enter:  (d) => ({ opacity: 0, x: d > 0 ? 60  : -60,  scale: 1.02 }),
@@ -207,18 +175,30 @@ const handleWatchlist = async () => {
           letter-spacing: 0.1em; text-transform: uppercase;
           padding: 4px 10px; border-radius: 4px;
         }
+        .hs-glass {
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+        .hs-viewport {
+          position: relative;
+          width: 100%;
+          overflow: hidden;
+          background: #060a12;
+          height: 100vh;
+          height: 100svh;
+          min-height: 560px;
+        }
+        @media (max-width: 768px) {
+          .hs-viewport {
+            height: 90vh;
+            height: 90svh;
+            min-height: 500px;
+          }
+        }
       `}</style>
 
       <div
-        className="hero-slider-container"
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "100vh",
-          minHeight: 560,
-          overflow: "hidden",
-          background: "#060a12",
-        }}
+        className="hero-slider-container hs-viewport"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
@@ -234,7 +214,7 @@ const handleWatchlist = async () => {
             style={{
               position: "absolute", inset: 0,
               backgroundImage: imgLoaded[slide._id]
-                ? `url(${slide.images?.fanart || slide.images?.poster})`
+                ? `url(${getBackdrop(slide.images?.fanart || slide.images?.poster, isMobile)})`
                 : "none",
               backgroundSize: "cover",
               backgroundPosition: "center top",
@@ -242,7 +222,7 @@ const handleWatchlist = async () => {
             }}
           >
             <img
-              src={slide.images?.fanart || slide.images?.poster}
+              src={getBackdrop(slide.images?.fanart || slide.images?.poster, isMobile)}
               alt=""
               style={{ display: "none" }}
               onLoad={() => setImgLoaded(p => ({ ...p, [slide._id]: true }))}
@@ -315,11 +295,11 @@ const handleWatchlist = async () => {
                 transition={{ delay: 0.25, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: "clamp(36px, 4.5vw, 66px)",
+                  fontSize: "clamp(30px, 4.5vw, 66px)",
                   fontWeight: 900,
                   lineHeight: 1.05,
                   letterSpacing: "-0.02em",
-                  marginBottom: 18,
+                  marginBottom: isMobile ? 12 : 18,
                   color: "#eef0f8",
                   textShadow: "0 2px 40px rgba(0,0,0,0.5)",
                 }}
@@ -331,7 +311,7 @@ const handleWatchlist = async () => {
                 transition={{ delay: 0.3, duration: 0.4 }}
                 style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}
               >
-                {(slide.genres || []).slice(0, 3).map((g, i) => (
+                {(slide.genres || []).slice(0, isMobile ? 2 : 3).map((g, i) => (
                   <span key={i} style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 11, color: "#4a5878",
@@ -349,11 +329,11 @@ const handleWatchlist = async () => {
                 transition={{ delay: 0.35, duration: 0.4 }}
                 style={{
                   fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 14, lineHeight: 1.75,
+                  fontSize: isMobile ? 13 : 14, lineHeight: 1.7,
                   color: "#6878a0", fontWeight: 300,
-                  marginBottom: 32,
+                  marginBottom: isMobile ? 22 : 32,
                   display: "-webkit-box",
-                  WebkitLineClamp: 3,
+                  WebkitLineClamp: isMobile ? 2 : 3,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
                   maxWidth: 500,
@@ -364,61 +344,49 @@ const handleWatchlist = async () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.4 }}
-                style={{ display: "flex", gap: isMobile ? 10 : 12, alignItems: "stretch", flexWrap: "wrap" }}
+                style={{ display: "flex", gap: isMobile ? 10 : 12, alignItems: "stretch" }}
               >
                 {/* Watch Now - Opens VideoPlayer */}
                 <button
                   className="hs-btn"
                   onClick={handleWatch}
                   style={{
-                    padding: isMobile ? "12px 20px" : "13px 28px",
-                    height: isMobile ? 44 : 48,
-                    borderRadius: 9,
+                    flex: isMobile ? 1 : "0 0 auto",
+                    padding: isMobile ? "12px 20px" : "13px 32px",
+                    height: isMobile ? 46 : 50,
+                    borderRadius: 10,
                     background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}cc)`,
                     color: "#0a0a0a",
-                    fontSize: isMobile ? 13 : 14,
+                    fontSize: isMobile ? 14 : 15,
+                    fontWeight: 600,
                     whiteSpace: "nowrap",
-                    boxShadow: `0 8px 24px ${cfg.glow}`,
+                    boxShadow: `0 8px 28px ${cfg.glow}`,
                   }}
                 >
-                  <Play size={16} fill="currentColor" />
+                  <Play size={17} fill="currentColor" />
                   Watch Now
                 </button>
 
                 <button
-                  className="hs-btn"
-                  onClick={handleWatchlist}
-                  style={{
-                    padding: isMobile ? "12px 16px" : "13px 22px",
-                    height: isMobile ? 44 : 48,
-                    borderRadius: 9,
-                    background: inList ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.07)",
-                    border: inList ? `1px solid ${cfg.accent}66` : "1px solid rgba(255,255,255,0.12)",
-                    color: inList ? cfg.accent : "#8892a4",
-                    fontSize: isMobile ? 13 : 14,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {inList ? <Check size={15} /> : <Plus size={15} />}
-                  {inList ? "In List" : "My List"}
-                </button>
-
-                <button
-                  className="hs-btn"
+                  className="hs-btn hs-glass"
                   onClick={handleWatch}
+                  aria-label="Details"
+                  title="Details"
                   style={{
-                    padding: isMobile ? "12px 16px" : "13px 22px",
-                    height: isMobile ? 44 : 48,
-                    borderRadius: 9,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "#6878a0",
-                    fontSize: isMobile ? 13 : 14,
+                    flex: "0 0 auto",
+                    width: isMobile ? 46 : "auto",
+                    padding: isMobile ? 0 : "13px 24px",
+                    height: isMobile ? 46 : 50,
+                    borderRadius: 10,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    color: "#c8d0e0",
+                    fontSize: 15,
                     whiteSpace: "nowrap",
                   }}
                 >
-                  <Info size={15} />
-                  Details
+                  <Info size={18} />
+                  {!isMobile && "Details"}
                 </button>
               </motion.div>
             </motion.div>
@@ -464,17 +432,21 @@ const handleWatchlist = async () => {
 
         {/* BOTTOM CONTROLS */}
         <div style={{
-  position: "absolute", bottom: 36, left: isMobile ? 20 : 64, right: isMobile ? 20 : 64,
-  display: "flex", alignItems: "center", gap: 20, zIndex: 10,
+  position: "absolute", bottom: isMobile ? 20 : 36, left: isMobile ? 20 : 64, right: isMobile ? 20 : 64,
+  display: "flex", alignItems: "center", gap: isMobile ? 12 : 20, zIndex: 10,
 }}>
-          <button className="hs-arrow" onClick={goPrev} style={{ width: 38, height: 38 }}>
-            <ChevronLeft size={18} color="#8892a4" />
-          </button>
-          <button className="hs-arrow" onClick={goNext} style={{ width: 38, height: 38 }}>
-            <ChevronRight size={18} color="#8892a4" />
-          </button>
+          {!isMobile && (
+            <>
+              <button className="hs-arrow" onClick={goPrev} style={{ width: 38, height: 38 }}>
+                <ChevronLeft size={18} color="#8892a4" />
+              </button>
+              <button className="hs-arrow" onClick={goNext} style={{ width: 38, height: 38 }}>
+                <ChevronRight size={18} color="#8892a4" />
+              </button>
+            </>
+          )}
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: isMobile ? 6 : 8, alignItems: "center" }}>
             {slides.map((s, i) => {
               const isActive = i === current;
               return (
@@ -483,7 +455,7 @@ const handleWatchlist = async () => {
                   onClick={() => goTo(i, i > current ? 1 : -1)}
                   style={{
                     position: "relative", height: 3,
-                    width: isActive ? 40 : 20, borderRadius: 2,
+                    width: isActive ? (isMobile ? 28 : 40) : (isMobile ? 14 : 20), borderRadius: 2,
                     background: "rgba(255,255,255,0.15)", cursor: "pointer", overflow: "hidden",
                   }}
                 >
