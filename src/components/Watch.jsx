@@ -243,8 +243,8 @@ export default function Watch() {
       sources.push({
         name: 'DemiGod👑',
         url: seriesFlag
-          ? `https://vidsrc.wtf/1/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://vidsrc.wtf/1/movie/${tmdbId || anyId}?color=e8b84b`,
+          ? `https://embed.filmu.in/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://embed.filmu.in/movie/${tmdbId || anyId}?color=e8b84b`,
         quality: 'HD', id: 'vidsrcwtf'
       });
 
@@ -347,7 +347,7 @@ export default function Watch() {
                 title={media.title}
               />
             )}
-            {!useDirect && ['vidsrcwtf', 'vidlux'].includes(sources[currentSource]?.id) && (
+            {!useDirect && ['vidlux'].includes(sources[currentSource]?.id) && (
               <button
                 onClick={handleFullscreen}
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
