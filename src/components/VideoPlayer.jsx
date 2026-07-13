@@ -170,8 +170,8 @@ export default function VideoPlayer({ media, onClose }) {
         sources.push({
           name: 'God👑',
           url: isSeries
-            ? `https://vsembed.ru/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vsembed.ru/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vsembed.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vsembed.ru/embed/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
