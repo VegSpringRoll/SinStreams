@@ -182,8 +182,8 @@ export default function VideoPlayer({ media, onClose }) {
         sources.push({
           name: 'God👑',
           url: isSeries
-            ? `https://embed.filmu.in/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://embed.filmu.in/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vidsrc-embed.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidsrc-embed.ru/embed/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
