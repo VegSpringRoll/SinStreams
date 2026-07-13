@@ -5,8 +5,9 @@ import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getAnime } from '../../services/mediaService'
-import { getLastWatched, clearLastWatched } from '../../services/Watchhistory'
-import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw } from 'lucide-react'
+import { getLastWatched, clearLastWatched } from '../../services/watchHistory'
+import { motion } from 'framer-motion'
+import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw, Heart, Sparkles } from 'lucide-react'
 
 // Curated genre picks for the homepage — the dedicated /movies and /series
 // pages cover the full genre list, so Home only teases a handful of each.
@@ -38,18 +39,26 @@ function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobil
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="hm-row" style={{ marginBottom: isFirst ? 24 : 32 }}>
+    <motion.div
+      className="hm-row"
+      style={{ marginBottom: isFirst ? 24 : 32 }}
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    >
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: isMobile ? '0 16px' : '0 32px', marginBottom: 12,
       }}>
         {Icon && (
           <div style={{
-            width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+            width: 26, height: 26, borderRadius: 7, flexShrink: 0,
             background: gradient || 'rgba(255,255,255,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
           }}>
-            <Icon size={12} color="#fff" />
+            <Icon size={13} color="#fff" />
           </div>
         )}
         <h3 style={{
@@ -86,7 +95,7 @@ function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobil
           </button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -263,31 +272,26 @@ export default function Home() {
   // Loading state
   if (loading) {
     return (
-      <div style={{
-        background: "#080c14",
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        color: "#c8d0e0",
-        fontFamily: "'DM Sans', sans-serif",
-      }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 40, marginBottom: 20 }}>
-            <div className="loading-spinner" style={{
-              width: 60,
-              height: 60,
-              border: "3px solid rgba(255,255,255,0.1)",
-              borderTop: "3px solid #e50914",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              margin: "0 auto 20px"
-            }} />
-          </div>
-          <p style={{ fontSize: 18, fontWeight: 500 }}>Loading amazing content for you...</p>
-          <p style={{ fontSize: 14, color: "#666", marginTop: 8 }}>Fetching the latest movies & shows</p>
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 90, overflow: 'hidden' }}>
+        <style>{HOME_ROW_CSS}</style>
+        <div style={{ padding: isMobile ? '0 16px' : '0 32px' }}>
+          <div className="hm-skeleton" style={{ width: '100%', maxWidth: 900, aspectRatio: isMobile ? '4/5' : '21/9', borderRadius: 16, marginBottom: 32 }} />
         </div>
+        {[1, 2, 3].map(row => (
+          <div key={row} style={{ marginBottom: 32 }}>
+            <div style={{ padding: isMobile ? '0 16px' : '0 32px', marginBottom: 14 }}>
+              <div className="hm-skeleton" style={{ width: 150, height: 18, borderRadius: 6 }} />
+            </div>
+            <div style={{ display: 'flex', gap: isMobile ? 10 : 12, overflow: 'hidden', padding: isMobile ? '0 16px' : '0 32px' }}>
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="hm-skeleton" style={{
+                  width: isMobile ? 130 : 160, height: isMobile ? 190 : 235,
+                  flexShrink: 0, borderRadius: 12,
+                }} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -301,32 +305,35 @@ export default function Home() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        color: "#c8d0e0",
         fontFamily: "'DM Sans', sans-serif",
         paddingTop: 90,
-        paddingLeft: 32,
-        paddingRight: 32,
+        paddingLeft: 20,
+        paddingRight: 20,
       }}>
-        <div style={{ textAlign: "center", maxWidth: 400 }}>
-          <div style={{ fontSize: 60, marginBottom: 20 }}>😕</div>
-          <h2 style={{ color: "#e0e0e0", marginBottom: 10, fontSize: 24 }}>Oops! Something went wrong</h2>
-          <p style={{ color: "#888", marginBottom: 24, fontSize: 16, lineHeight: 1.6 }}>{error}</p>
+        <div style={{
+          textAlign: "center", maxWidth: 380, padding: '40px 32px',
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 20, backdropFilter: 'blur(12px)',
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 18 }}>😕</div>
+          <h2 style={{ color: "#e8eaf0", marginBottom: 10, fontSize: 21, fontWeight: 700 }}>Something went wrong</h2>
+          <p style={{ color: "#6878a0", marginBottom: 26, fontSize: 14.5, lineHeight: 1.6 }}>{error}</p>
           <button 
             onClick={() => window.location.reload()}
             style={{
-              padding: "14px 32px",
-              background: "#e50914",
-              color: "white",
+              padding: "13px 30px",
+              background: "#e8b84b",
+              color: "#080c14",
               border: "none",
-              borderRadius: 8,
+              borderRadius: 10,
               cursor: "pointer",
-              fontSize: 16,
-              fontWeight: 600,
+              fontSize: 15,
+              fontWeight: 700,
               fontFamily: "'DM Sans', sans-serif",
-              transition: "all 0.2s",
+              transition: "transform 0.15s ease",
             }}
-            onMouseEnter={(e) => e.target.style.background = "#f40612"}
-            onMouseLeave={(e) => e.target.style.background = "#e50914"}
+            onMouseEnter={(e) => e.target.style.transform = "scale(1.03)"}
+            onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
           >
             Try Again
           </button>
@@ -344,7 +351,24 @@ export default function Home() {
         paddingTop: 90,
         paddingBottom: 40,
         overflowX: "hidden",
+        position: "relative",
       }}>
+        {/* Ambient background glow — subtle, adds depth without distracting */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 900,
+          pointerEvents: 'none', zIndex: 0, overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: -200, left: '10%', width: 600, height: 600,
+            borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,184,75,0.06), transparent 70%)',
+          }} />
+          <div style={{
+            position: 'absolute', top: 100, right: '5%', width: 500, height: 500,
+            borderRadius: '50%', background: 'radial-gradient(circle, rgba(91,164,212,0.05), transparent 70%)',
+          }} />
+        </div>
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Hero Slider - Only show if there are movies */}
         {movies.length > 0 && (
           <HeroSlider
@@ -357,9 +381,21 @@ export default function Home() {
 
         {/* ===== CONTINUE WATCHING ===== */}
         {continueWatching && (
-          <div style={{ padding: isMobile ? '20px 16px 0' : '28px 32px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <RotateCcw size={15} color="#e8b84b" strokeWidth={2.2} />
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            style={{ padding: isMobile ? '20px 16px 0' : '28px 32px 0' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                background: 'linear-gradient(135deg, #e8b84b, #e8b84b88)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(232,184,75,0.25)',
+              }}>
+                <RotateCcw size={13} color="#080c14" strokeWidth={2.4} />
+              </div>
               <h2 style={{
                 fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 14.5,
                 fontWeight: 700, color: '#c8d0e0', margin: 0,
@@ -373,8 +409,11 @@ export default function Home() {
               style={{
                 position: 'relative', display: 'flex',
                 flexDirection: isMobile ? 'column' : 'row',
-                borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
-                background: '#0d1420', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
               }}
             >
               <button
@@ -385,6 +424,7 @@ export default function Home() {
                   width: 28, height: 28, borderRadius: '50%',
                   background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                  backdropFilter: 'blur(4px)',
                 }}
               >
                 <X size={14} />
@@ -403,13 +443,14 @@ export default function Home() {
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: isMobile
-                    ? 'linear-gradient(to top, rgba(8,12,20,0.9), rgba(8,12,20,0.05) 60%)'
-                    : 'linear-gradient(to right, rgba(8,12,20,0.15), rgba(8,12,20,0.15))',
+                    ? 'linear-gradient(to top, rgba(8,12,20,0.92), rgba(8,12,20,0.05) 60%)'
+                    : 'linear-gradient(to right, rgba(8,12,20,0.1), rgba(8,12,20,0.25))',
                 }} />
                 <div className="cw-play-btn" style={{
                   position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                   width: 50, height: 50, borderRadius: '50%',
                   background: 'rgba(232,184,75,0.95)',
+                  boxShadow: '0 8px 24px rgba(232,184,75,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <Play size={20} fill="#080c14" color="#080c14" style={{ marginLeft: 3 }} />
@@ -437,11 +478,12 @@ export default function Home() {
                   }}>{continueWatching.media.synopsis}</p>
                 )}
                 <button
+                  className="cw-resume-btn"
                   onClick={(e) => { e.stopPropagation(); handleResumeContinue(); }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     background: '#e8b84b', color: '#080c14', border: 'none',
-                    borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700,
+                    borderRadius: 9, padding: '10px 20px', fontSize: 14, fontWeight: 700,
                     fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
                   }}
                 >
@@ -449,23 +491,37 @@ export default function Home() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* ===== MOVIES SECTION ===== */}
         <div style={{ marginTop: movies.length > 0 ? 40 : 0 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Film size={18} color="#e8b84b" strokeWidth={1.5} />
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                background: 'linear-gradient(135deg, #e8b84b, #c9962e)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 16px rgba(232,184,75,0.3)',
+              }}>
+                <Film size={16} color="#080c14" strokeWidth={2} />
+              </div>
               <h2 style={{
                 fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
                 fontWeight: 900, color: '#e8eaf0', margin: 0, letterSpacing: '-0.3px',
               }}>Movies</h2>
             </div>
             <button
+              className="hm-explore-btn"
               onClick={() => navigate('/movies')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -473,12 +529,10 @@ export default function Home() {
                 fontFamily: "'DM Sans', sans-serif", fontSize: 13,
                 color: '#6878a0', fontWeight: 500, padding: 0,
               }}
-              onMouseEnter={e => e.currentTarget.style.color = '#e8b84b'}
-              onMouseLeave={e => e.currentTarget.style.color = '#6878a0'}
             >
               Explore All <ChevronRight size={14} />
             </button>
-          </div>
+          </motion.div>
 
           {movies.length > 0 ? (
             <>
@@ -499,18 +553,32 @@ export default function Home() {
 
         {/* ===== SERIES SECTION ===== */}
         <div style={{ marginTop: 16 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Tv size={18} color="#5ba4d4" strokeWidth={1.5} />
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                background: 'linear-gradient(135deg, #5ba4d4, #3577a8)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 16px rgba(91,164,212,0.3)',
+              }}>
+                <Tv size={16} color="#080c14" strokeWidth={2} />
+              </div>
               <h2 style={{
                 fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
                 fontWeight: 900, color: '#e8eaf0', margin: 0, letterSpacing: '-0.3px',
               }}>Series</h2>
             </div>
             <button
+              className="hm-explore-btn"
               onClick={() => navigate('/series')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -518,12 +586,10 @@ export default function Home() {
                 fontFamily: "'DM Sans', sans-serif", fontSize: 13,
                 color: '#6878a0', fontWeight: 500, padding: 0,
               }}
-              onMouseEnter={e => e.currentTarget.style.color = '#5ba4d4'}
-              onMouseLeave={e => e.currentTarget.style.color = '#6878a0'}
             >
               Explore All <ChevronRight size={14} />
             </button>
-          </div>
+          </motion.div>
 
           {loadingSeries ? (
             <div style={{ padding: "40px 0", textAlign: "center" }}>
@@ -561,15 +627,23 @@ export default function Home() {
           <div style={{
             maxWidth: 500,
             margin: "0 auto 40px",
-            background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+            background: "rgba(255,255,255,0.03)",
             borderRadius: 20,
             padding: 30,
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            backdropFilter: "blur(12px)",
             textAlign: "center",
           }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>❤️</div>
+            <div style={{
+              width: 56, height: 56, borderRadius: 14, margin: "0 auto 16px",
+              background: "linear-gradient(135deg, #e8b84b, #c9962e)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 8px 20px rgba(232,184,75,0.3)",
+            }}>
+              <Heart size={26} color="#080c14" fill="#080c14" />
+            </div>
             <h3 style={{
-              color: "#fff",
+              color: "#e8eaf0",
               fontSize: 22,
               fontWeight: 700,
               margin: "0 0 10px 0",
@@ -578,7 +652,7 @@ export default function Home() {
               Support This Project
             </h3>
             <p style={{
-              color: "#888",
+              color: "#6878a0",
               fontSize: 14,
               lineHeight: 1.6,
               marginBottom: 20,
@@ -592,8 +666,8 @@ export default function Home() {
               <button
                 onClick={() => setShowQR(true)}
                 style={{
-                  background: "linear-gradient(135deg, #e50914, #ff4444)",
-                  color: "#fff",
+                  background: "linear-gradient(135deg, #e8b84b, #c9962e)",
+                  color: "#080c14",
                   border: "none",
                   borderRadius: 12,
                   padding: "14px 30px",
@@ -673,6 +747,7 @@ export default function Home() {
                     {[10, 50, 100].map(amount => (
                       <button
                         key={amount}
+                        onClick={() => openUPIApp(amount)}
                         style={{
                           background: "rgba(255,255,255,0.08)",
                           color: "#fff",
@@ -686,8 +761,8 @@ export default function Home() {
                           transition: "all 0.2s",
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.background = "rgba(229,9,20,0.3)";
-                          e.target.style.borderColor = "#e50914";
+                          e.target.style.background = "rgba(232,184,75,0.2)";
+                          e.target.style.borderColor = "#e8b84b";
                         }}
                         onMouseLeave={(e) => {
                           e.target.style.background = "rgba(255,255,255,0.08)";
@@ -774,7 +849,7 @@ export default function Home() {
             }}>
               Developed by{' '}
               <span style={{
-                color: "#e50914",
+                color: "#e8b84b",
                 fontWeight: 700,
                 letterSpacing: "0.5px",
               }}>
@@ -793,6 +868,7 @@ export default function Home() {
           </div>
 
         </div>
+        </div>
       </div>
 
       {/* Video Player Modal */}
@@ -809,10 +885,28 @@ export default function Home() {
 const HOME_ROW_CSS = `
   @keyframes hm-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
+  .hm-skeleton {
+    background: linear-gradient(90deg, #0d1420 25%, #1a2235 50%, #0d1420 75%);
+    background-size: 200% 100%;
+    animation: hm-shimmer 1.4s ease infinite;
+  }
+
+  .hm-explore-btn { transition: color 0.2s ease; }
+  .hm-explore-btn svg { transition: transform 0.2s ease; }
+  @media (hover: hover) and (pointer: fine) {
+    .hm-explore-btn:hover { color: #e8eaf0 !important; }
+    .hm-explore-btn:hover svg { transform: translateX(3px); }
+  }
+
+  .cw-resume-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  @media (hover: hover) and (pointer: fine) {
+    .cw-resume-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(232,184,75,0.35); }
+  }
+
   /* Continue Watching card */
   @media (hover: hover) and (pointer: fine) {
-    .cw-card { transition: border-color 0.2s ease; }
-    .cw-card:hover { border-color: rgba(232,184,75,0.3) !important; }
+    .cw-card { transition: border-color 0.2s ease, transform 0.2s ease; }
+    .cw-card:hover { border-color: rgba(232,184,75,0.35) !important; transform: translateY(-2px); }
     .cw-card:hover .cw-play-btn { transform: translate(-50%, -50%) scale(1.1); }
   }
   .cw-play-btn { transition: transform 0.2s ease; }
