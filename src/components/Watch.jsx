@@ -251,7 +251,7 @@ export default function Watch() {
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
-        name: '🔥',
+        name: 'Premium HD 🔥',
         url: seriesFlag ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
         quality: 'HD', id: 'smashystream'
       });
