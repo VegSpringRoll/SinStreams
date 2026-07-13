@@ -229,7 +229,7 @@ export default function VideoPlayer({ media, onClose }) {
 
       // #6 - SMASHYSTREAM - Use imdbId, fallback to anyId
       sources.push({
-        name: 'Premium ⭐',
+        name: 'Premium HD 🔥',
         url: isSeries 
           ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` 
           : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
