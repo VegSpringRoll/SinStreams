@@ -5,7 +5,7 @@ import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getAnime } from '../../services/mediaService'
-import { getLastWatched, clearLastWatched } from '../../services/watchHistory'
+import { getLastWatched, clearLastWatched } from '../../services/Watchhistory'
 import { motion } from 'framer-motion'
 import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw, Heart, Sparkles } from 'lucide-react'
 
