@@ -192,8 +192,8 @@ export default function VideoPlayer({ media, onClose }) {
       sources.push({
         name: 'DemiGod👑',
         url: isSeries
-          ? `https://vidcore.org/embed/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://vidcore.org/embed/movie/${tmdbId || anyId}?color=e8b84b`,
+          ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://vidcore.net/movie/${tmdbId || anyId}?color=e8b84b`,
         quality: 'HD', id: 'vidsrcwtf'
       });
 

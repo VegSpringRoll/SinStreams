@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import {
   Play, Plus, Check, Star, Clock, Calendar, Film, Tv,
-  X, Video, Globe, Users, DollarSign, ExternalLink
+  X, Video, Globe, Users, DollarSign, ExternalLink, ArrowLeft, ChevronDown
 } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 
@@ -33,6 +34,13 @@ const LANGUAGE_NAMES = {
   pt: 'Portuguese', ar: 'Arabic', tr: 'Turkish', th: 'Thai',
 };
 
+// Same accent language as HeroSlider / genre rows, so this page feels like
+// part of the same app instead of a bolted-on Netflix-red template page.
+const TYPE_CONFIG = {
+  movie:  { label: 'FILM',   accent: '#e8b84b', glow: 'rgba(232,184,75,0.22)' },
+  series: { label: 'SERIES', accent: '#5ba4d4', glow: 'rgba(91,164,212,0.22)' },
+};
+
 export default function Details() {
   const { type, id } = useParams();
   const navigate = useNavigate();
@@ -45,10 +53,21 @@ export default function Details() {
   const [watchlistBusy, setWatchlistBusy] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [posterLoaded, setPosterLoaded] = useState(false);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     fetchDetails();
+    setSynopsisExpanded(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, id]);
 
@@ -201,627 +220,521 @@ export default function Details() {
     navigate(`/watch/${media.type}/${media._id}`, { state: { media, autoPlay: true } });
   }, [media, navigate]);
 
+  const cfg = TYPE_CONFIG[media?.type] || TYPE_CONFIG.movie;
+
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="page-content" style={styles.container}>
+      <div className="page-content" style={{ minHeight: '100vh', background: '#080c14' }}>
+        <style>{PAGE_CSS}</style>
         <div style={styles.loadingContainer}>
           <div style={styles.spinner} />
-          <p style={{ color: '#888', fontFamily: "'DM Sans', sans-serif" }}>Loading details...</p>
+          <p style={{ color: '#6878a0', fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>Loading details...</p>
         </div>
       </div>
     );
   }
 
+  // ── Error ────────────────────────────────────────────────────────────────
   if (error || !media) {
     return (
-      <div className="page-content" style={styles.container}>
+      <div className="page-content" style={{ minHeight: '100vh', background: '#080c14' }}>
+        <style>{PAGE_CSS}</style>
         <div style={styles.loadingContainer}>
-          <p style={{ color: '#ccc', fontSize: 18 }}>{error || 'Not found'}</p>
-          <button onClick={() => navigate(-1)} style={styles.backBtn}>Go Back</button>
+          <p style={{ color: '#c8d0e0', fontSize: 16, fontFamily: "'DM Sans', sans-serif" }}>{error || 'Not found'}</p>
+          <button onClick={() => navigate(-1)} style={styles.backBtn}>
+            <ArrowLeft size={15} /> Go Back
+          </button>
         </div>
       </div>
     );
   }
 
   const runtimeLabel = formatRuntime(media.runtime);
+  const posterW = isMobile ? 168 : 300;
+  const posterH = Math.round(posterW * 1.5);
+
+  // Data-driven credit cells for the info panel
+  const creditItems = [
+    media.director && { label: 'Director', value: media.director },
+    media.created_by && { label: 'Created by', value: media.created_by },
+    media.writers?.length > 0 && { label: 'Writers', value: media.writers.join(', ') },
+    media.networks?.length > 0 && { label: 'Network', value: media.networks.join(', ') },
+    media.originalLanguage && { label: 'Language', value: media.originalLanguage },
+    media.productionCompanies?.length > 0 && { label: 'Studio', value: media.productionCompanies.join(', ') },
+    formatCurrency(media.budget) && { label: 'Budget', value: formatCurrency(media.budget), icon: DollarSign },
+    formatCurrency(media.revenue) && { label: 'Revenue', value: formatCurrency(media.revenue), icon: DollarSign },
+  ].filter(Boolean);
 
   return (
     <>
-      <style>{RESPONSIVE_CSS}</style>
+      <style>{PAGE_CSS}</style>
 
-      <div className="page-content details-container" style={styles.container}>
-        {/* Backdrop */}
-        <div className="details-backdrop" style={{
-          ...styles.backdrop,
-          backgroundImage: media.images?.fanart ? `url(${media.images.fanart})` : 'none',
-        }}>
-          <div style={styles.backdropOverlay} />
+      <div className="page-content" style={{ minHeight: '100vh', background: '#080c14', position: 'relative' }}>
+        {/* ── Cinematic backdrop ── */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: isMobile ? 380 : 640, overflow: 'hidden' }}>
+          {media.images?.fanart && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url(${media.images.fanart})`,
+              backgroundSize: 'cover', backgroundPosition: 'center top',
+            }} />
+          )}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(8,12,20,0.35) 0%, rgba(8,12,20,0.88) 60%, #080c14 100%)',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `radial-gradient(ellipse 55% 45% at 82% 15%, ${cfg.glow}, transparent)`,
+          }} />
         </div>
 
-        {/* Content */}
-        <div className="details-content" style={styles.content}>
-          <button onClick={() => navigate(-1)} style={styles.backBtn} className="details-back-btn">← Back</button>
+        {/* ── Content ── */}
+        <div style={{
+          position: 'relative', zIndex: 1,
+          maxWidth: 1200, margin: '0 auto',
+          padding: isMobile ? '84px 16px 48px' : '124px 40px 64px',
+        }}>
+          <button onClick={() => navigate(-1)} style={styles.backBtn} className="det-glass">
+            <ArrowLeft size={15} /> Back
+          </button>
 
-          <div className="details-main" style={styles.mainInfo}>
-            {/* Poster */}
-            <div className="details-poster" style={styles.posterContainer}>
-              {media.images?.poster ? (
-                <>
-                  {!posterLoaded && <div className="details-poster-skeleton" style={styles.posterPlaceholder} />}
-                  <img
-                    src={media.images.poster}
-                    alt={media.title}
-                    style={{ ...styles.poster, display: posterLoaded ? 'block' : 'none' }}
-                    onLoad={() => setPosterLoaded(true)}
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                </>
-              ) : (
-                <div style={styles.posterPlaceholder}>
-                  {media.type === 'series' ? <Tv size={40} /> : <Film size={40} />}
-                </div>
-              )}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? 24 : 40,
+            }}
+          >
+            {/* ── Poster ── */}
+            <div style={{ flexShrink: 0, position: 'relative' }}>
+              <div style={{
+                width: posterW, height: posterH,
+                borderRadius: 16, overflow: 'hidden',
+                border: `1px solid ${cfg.accent}33`,
+                boxShadow: `0 20px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)`,
+                background: '#0d1420',
+                position: 'relative',
+              }}>
+                {media.images?.poster ? (
+                  <>
+                    {!posterLoaded && <div className="det-skeleton" style={{ position: 'absolute', inset: 0 }} />}
+                    <img
+                      src={media.images.poster}
+                      alt={media.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: posterLoaded ? 'block' : 'none' }}
+                      onLoad={() => setPosterLoaded(true)}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </>
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3a4560' }}>
+                    {media.type === 'series' ? <Tv size={40} /> : <Film size={40} />}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Info */}
-            <div style={styles.info}>
-              <h1 className="details-title" style={styles.title}>{media.title}</h1>
-
-              {media.tagline && (
-                <p className="details-tagline" style={styles.tagline}>"{media.tagline}"</p>
-              )}
-
-              <div className="details-meta-row" style={styles.metaRow}>
-                {media.rating && media.rating.percentage > 0 && (
-                  <span style={styles.rating}>
-                    <Star size={16} fill="#e8b84b" color="#e8b84b" />
-                    {(media.rating.percentage / 10).toFixed(1)}
+            {/* ── Info ── */}
+            <div style={{ flex: 1, minWidth: 0, width: '100%', textAlign: isMobile ? 'center' : 'left' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                justifyContent: isMobile ? 'center' : 'flex-start',
+                marginBottom: 14, flexWrap: 'wrap',
+              }}>
+                <span className="det-tag" style={{ background: `${cfg.accent}1f`, border: `1px solid ${cfg.accent}55`, color: cfg.accent }}>
+                  {cfg.label}
+                </span>
+                {media.status && (
+                  <span className="det-tag" style={{ background: 'rgba(90,180,120,0.15)', border: '1px solid rgba(90,180,120,0.35)', color: '#7fd19c' }}>
+                    {media.status}
                   </span>
                 )}
-                {media.year && <span style={styles.metaItem}><Calendar size={14} /> {media.year}</span>}
-                {runtimeLabel && <span style={styles.metaItem}><Clock size={14} /> {runtimeLabel}</span>}
-                {media.seasons && (
-                  <span style={styles.metaItem}>{media.seasons} Season{media.seasons > 1 ? 's' : ''} • {media.episodes} Episodes</span>
-                )}
-                {media.status && <span style={styles.statusBadge}>{media.status}</span>}
               </div>
 
-              <div className="details-genre-row" style={styles.genreRow}>
+              <h1 style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: isMobile ? 'clamp(24px, 7vw, 32px)' : 'clamp(32px, 4vw, 50px)',
+                fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.02em',
+                margin: '0 0 10px',
+                backgroundImage: `linear-gradient(135deg, #fdfdfd, ${cfg.accent}bb)`,
+                WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
+                textShadow: '0 2px 30px rgba(0,0,0,0.4)',
+              }}>{media.title}</h1>
+
+              {media.tagline && (
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 14 : 16, color: '#6878a0', fontStyle: 'italic', margin: '0 0 16px' }}>
+                  "{media.tagline}"
+                </p>
+              )}
+
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16,
+                justifyContent: isMobile ? 'center' : 'flex-start',
+              }}>
+                {media.rating && media.rating.percentage > 0 && (
+                  <span className="det-chip" style={{ color: '#e8b84b' }}>
+                    <Star size={13} fill="#e8b84b" color="#e8b84b" /> {(media.rating.percentage / 10).toFixed(1)}
+                  </span>
+                )}
+                {media.year && <span className="det-chip"><Calendar size={13} /> {media.year}</span>}
+                {runtimeLabel && <span className="det-chip"><Clock size={13} /> {runtimeLabel}</span>}
+                {media.seasons && (
+                  <span className="det-chip">{media.seasons} Season{media.seasons > 1 ? 's' : ''} • {media.episodes} Episodes</span>
+                )}
+              </div>
+
+              <div style={{
+                display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20,
+                justifyContent: isMobile ? 'center' : 'flex-start',
+              }}>
                 {media.genres?.map(g => (
-                  <span key={g} style={styles.genre}>{g}</span>
+                  <span key={g} className="det-genre" style={{ borderColor: `${cfg.accent}33` }}>{g}</span>
                 ))}
               </div>
 
               {media.synopsis && (
-                <p className="details-synopsis" style={styles.synopsis}>{media.synopsis}</p>
+                <div style={{ marginBottom: 22, maxWidth: isMobile ? '100%' : 640, marginLeft: isMobile ? 'auto' : 0, marginRight: isMobile ? 'auto' : 0 }}>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13.5 : 15,
+                    color: '#8892a4', lineHeight: 1.75, margin: 0,
+                    display: synopsisExpanded ? 'block' : '-webkit-box',
+                    WebkitLineClamp: synopsisExpanded ? 'unset' : 4,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: synopsisExpanded ? 'visible' : 'hidden',
+                  }}>{media.synopsis}</p>
+                  {media.synopsis.length > 220 && (
+                    <button
+                      onClick={() => setSynopsisExpanded(v => !v)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 6,
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        color: cfg.accent, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600,
+                        marginLeft: isMobile ? 'auto' : 0, marginRight: isMobile ? 'auto' : 0,
+                      }}
+                    >
+                      {synopsisExpanded ? 'Show less' : 'Read more'}
+                      <ChevronDown size={14} style={{ transform: synopsisExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                  )}
+                </div>
               )}
 
-              <div className="details-credits" style={styles.creditsGrid}>
-                {media.director && (
-                  <p style={styles.credit}><strong>Director</strong><span>{media.director}</span></p>
-                )}
-                {media.created_by && (
-                  <p style={styles.credit}><strong>Created by</strong><span>{media.created_by}</span></p>
-                )}
-                {media.writers?.length > 0 && (
-                  <p style={styles.credit}><strong>Writers</strong><span>{media.writers.join(', ')}</span></p>
-                )}
-                {media.networks?.length > 0 && (
-                  <p style={styles.credit}><strong>Network</strong><span>{media.networks.join(', ')}</span></p>
-                )}
-                {media.originalLanguage && (
-                  <p style={styles.credit}><strong>Language</strong><span>{media.originalLanguage}</span></p>
-                )}
-                {media.productionCompanies?.length > 0 && (
-                  <p style={styles.credit}><strong>Studio</strong><span>{media.productionCompanies.join(', ')}</span></p>
-                )}
-                {formatCurrency(media.budget) && (
-                  <p style={styles.credit}><strong>Budget</strong><span>{formatCurrency(media.budget)}</span></p>
-                )}
-                {formatCurrency(media.revenue) && (
-                  <p style={styles.credit}><strong>Revenue</strong><span>{formatCurrency(media.revenue)}</span></p>
-                )}
-              </div>
-
-              <div className="details-action-row" style={styles.actionRow}>
-                <button onClick={handlePlay} style={styles.playBtn} className="details-play-btn">
-                  <Play size={20} fill="white" /> Play Now
-                </button>
-
-                {media.trailerKey && (
-                  <button onClick={() => setShowTrailer(true)} style={styles.trailerBtn} className="details-trailer-btn">
-                    <Video size={19} /> Trailer
-                  </button>
-                )}
-
-                <button
-                  onClick={handleWatchlist}
-                  disabled={watchlistBusy}
-                  style={{
-                    ...styles.watchlistBtn,
-                    ...(inWatchlist ? styles.watchlistActive : {}),
-                    ...(watchlistBusy ? { opacity: 0.6, cursor: 'default' } : {})
-                  }}
-                  className="details-watchlist-btn"
-                >
-                  {inWatchlist ? <Check size={18} /> : <Plus size={18} />}
-                  {inWatchlist ? 'In List' : 'My List'}
-                </button>
-
-                {media.imdb_id && (
-                  <a
-                    href={`https://www.imdb.com/title/${media.imdb_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={styles.imdbBtn}
-                    className="details-imdb-btn"
-                  >
-                    <ExternalLink size={16} /> IMDb
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Cast */}
-          {media.cast && media.cast.length > 0 && (
-            <div style={styles.castSection}>
-              <h2 style={styles.sectionTitle}><Users size={18} /> Cast</h2>
-              <div className="details-cast-row" style={styles.castRow}>
-                {media.cast.map((actor, i) => (
-                  <div key={i} className="details-cast-card" style={styles.castCard}>
-                    <div className="details-cast-image" style={{
-                      ...styles.castImage,
-                      backgroundImage: actor.image ? `url(https://image.tmdb.org/t/p/w200${actor.image})` : 'none',
-                    }}>
-                      {!actor.image && <span style={{ fontSize: 20 }}>👤</span>}
+              {creditItems.length > 0 && (
+                <div className="det-glass" style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(180px, 1fr))',
+                  gap: '14px 24px',
+                  padding: '18px 20px',
+                  borderRadius: 14,
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'rgba(255,255,255,0.03)',
+                  marginBottom: 26,
+                  textAlign: 'left',
+                }}>
+                  {creditItems.map((c, i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                      <span style={{
+                        fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 600,
+                        color: '#4a5878', textTransform: 'uppercase', letterSpacing: '0.08em',
+                        display: 'flex', alignItems: 'center', gap: 5,
+                      }}>
+                        {c.icon && <c.icon size={11} />}
+                        {c.label}
+                      </span>
+                      <span style={{
+                        fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, color: '#c8d0e0',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>{c.value}</span>
                     </div>
-                    <p style={styles.castName}>{actor.name}</p>
-                    <p style={styles.castRole}>{actor.character}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Actions ── */}
+              {isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={handlePlay} className="det-btn" style={{
+                      flex: 1, height: 46, borderRadius: 10,
+                      background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}cc)`,
+                      color: '#0a0a0a', fontWeight: 700, boxShadow: `0 8px 24px ${cfg.glow}`,
+                    }}>
+                      <Play size={17} fill="currentColor" /> Play Now
+                    </button>
+                    <button
+                      onClick={handleWatchlist}
+                      disabled={watchlistBusy}
+                      className="det-btn det-glass"
+                      aria-label={inWatchlist ? 'In List' : 'My List'}
+                      style={{
+                        width: 46, height: 46, borderRadius: 10, flexShrink: 0,
+                        background: inWatchlist ? `${cfg.accent}22` : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${inWatchlist ? cfg.accent + '66' : 'rgba(255,255,255,0.14)'}`,
+                        color: inWatchlist ? cfg.accent : '#c8d0e0',
+                        opacity: watchlistBusy ? 0.6 : 1,
+                      }}
+                    >
+                      {inWatchlist ? <Check size={18} /> : <Plus size={18} />}
+                    </button>
+                  </div>
+                  {(media.trailerKey || media.imdb_id) && (
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      {media.trailerKey && (
+                        <button onClick={() => setShowTrailer(true)} className="det-btn det-glass" style={{
+                          flex: 1, height: 42, borderRadius: 10,
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#c8d0e0',
+                        }}>
+                          <Video size={16} /> Trailer
+                        </button>
+                      )}
+                      {media.imdb_id && (
+                        <a href={`https://www.imdb.com/title/${media.imdb_id}`} target="_blank" rel="noopener noreferrer"
+                          className="det-btn" style={{
+                            flex: 1, height: 42, borderRadius: 10, textDecoration: 'none',
+                            background: 'rgba(245,197,24,0.1)', border: '1px solid rgba(245,197,24,0.3)', color: '#f5c518',
+                          }}>
+                          <ExternalLink size={14} /> IMDb
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <button onClick={handlePlay} className="det-btn" style={{
+                    padding: '13px 32px', borderRadius: 10,
+                    background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}cc)`,
+                    color: '#0a0a0a', fontWeight: 700, boxShadow: `0 8px 24px ${cfg.glow}`,
+                  }}>
+                    <Play size={18} fill="currentColor" /> Play Now
+                  </button>
+
+                  {media.trailerKey && (
+                    <button onClick={() => setShowTrailer(true)} className="det-btn det-glass" style={{
+                      padding: '13px 24px', borderRadius: 10,
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#c8d0e0',
+                    }}>
+                      <Video size={17} /> Trailer
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleWatchlist}
+                    disabled={watchlistBusy}
+                    className="det-btn det-glass"
+                    style={{
+                      padding: '13px 24px', borderRadius: 10,
+                      background: inWatchlist ? `${cfg.accent}22` : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${inWatchlist ? cfg.accent + '66' : 'rgba(255,255,255,0.14)'}`,
+                      color: inWatchlist ? cfg.accent : '#c8d0e0',
+                      opacity: watchlistBusy ? 0.6 : 1,
+                    }}
+                  >
+                    {inWatchlist ? <Check size={17} /> : <Plus size={17} />}
+                    {inWatchlist ? 'In List' : 'My List'}
+                  </button>
+
+                  {media.imdb_id && (
+                    <a href={`https://www.imdb.com/title/${media.imdb_id}`} target="_blank" rel="noopener noreferrer"
+                      className="det-btn" style={{
+                        padding: '13px 20px', borderRadius: 10, textDecoration: 'none',
+                        background: 'rgba(245,197,24,0.1)', border: '1px solid rgba(245,197,24,0.3)', color: '#f5c518',
+                      }}>
+                      <ExternalLink size={15} /> IMDb
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* ── Cast ── */}
+          {media.cast && media.cast.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.4 }}
+              style={{ marginTop: isMobile ? 40 : 56 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                  background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}88)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Users size={13} color="#0a0a0a" />
+                </div>
+                <h2 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 16 : 18, fontWeight: 700, color: '#e8eaf0', margin: 0 }}>
+                  Cast
+                </h2>
+              </div>
+              <div className="hide-scrollbar" style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 10 }}>
+                {media.cast.map((actor, i) => (
+                  <div key={i} className="det-cast-card" style={{ flexShrink: 0, width: isMobile ? 88 : 110, textAlign: 'center' }}>
+                    <div className="det-cast-avatar" style={{
+                      width: isMobile ? 72 : 84, height: isMobile ? 72 : 84, borderRadius: '50%',
+                      margin: '0 auto 8px', overflow: 'hidden',
+                      background: 'rgba(255,255,255,0.05)', border: `1px solid rgba(255,255,255,0.1)`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {actor.image ? (
+                        <img
+                          src={`https://image.tmdb.org/t/p/w200${actor.image}`}
+                          alt={actor.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 20 }}>👤</span>
+                      )}
+                    </div>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 12.5, color: '#c8d0e0', fontWeight: 500,
+                      margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{actor.name}</p>
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: '#4a5878',
+                      margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{actor.character}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* Extra info footer */}
-          {(media.homepage || media.spokenLanguages?.length > 0) && (
-            <div style={styles.footerInfo}>
-              {media.homepage && (
-                <a href={media.homepage} target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
-                  <Globe size={14} /> Official Site
-                </a>
-              )}
+          {/* ── Footer info ── */}
+          {media.homepage && (
+            <div style={{ marginTop: 36, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <a href={media.homepage} target="_blank" rel="noopener noreferrer" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                color: '#6878a0', fontFamily: "'DM Sans', sans-serif", fontSize: 13, textDecoration: 'none',
+              }}>
+                <Globe size={14} /> Official Site
+              </a>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Trailer Modal */}
-      {showTrailer && media.trailerKey && (
-        <div
-          className="details-trailer-overlay"
-          style={styles.trailerOverlay}
-          onClick={() => setShowTrailer(false)}
-        >
-          <div
-            className="details-trailer-modal"
-            style={styles.trailerModal}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowTrailer(false)}
-              style={styles.trailerCloseBtn}
-              aria-label="Close trailer"
-            >
-              <X size={22} />
-            </button>
-            <div style={styles.trailerAspectBox}>
-              <iframe
-                src={`https://www.youtube.com/embed/${media.trailerKey}?autoplay=1&rel=0&modestbranding=1`}
-                title={media.trailerName || `${media.title} Trailer`}
-                style={styles.trailerIframe}
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
+        {/* ── Trailer Modal ── */}
+        {showTrailer && media.trailerKey && (
+          <div className="det-trailer-overlay" style={styles.trailerOverlay} onClick={() => setShowTrailer(false)}>
+            <div style={{ position: 'relative', width: 900, maxWidth: '100%' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowTrailer(false)} className="det-glass" style={styles.trailerCloseBtn} aria-label="Close trailer">
+                <X size={20} />
+              </button>
+              <div style={{
+                position: 'relative', width: '100%', paddingTop: '56.25%',
+                background: '#000', borderRadius: 14, overflow: 'hidden',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+              }}>
+                <iframe
+                  src={`https://www.youtube.com/embed/${media.trailerKey}?autoplay=1&rel=0&modestbranding=1`}
+                  title={media.trailerName || `${media.title} Trailer`}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }
 
-// ─── Responsive CSS (mobile-first overrides via media queries) ───
-const RESPONSIVE_CSS = `
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes detailsFadeIn { from { opacity: 0; } to { opacity: 1; } }
+const PAGE_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes detFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes detShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
-.details-poster-skeleton {
-  animation: detailsPulse 1.4s ease-in-out infinite;
-}
-@keyframes detailsPulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
-}
+  .det-skeleton {
+    background: linear-gradient(90deg, #0d1420 25%, #1a2235 50%, #0d1420 75%);
+    background-size: 200% 100%;
+    animation: detShimmer 1.4s ease infinite;
+  }
 
-.details-trailer-overlay { animation: detailsFadeIn 0.15s ease-out; }
+  .det-glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 
-@media (max-width: 768px) {
-  .details-content { padding: 80px 16px 32px !important; }
-  .details-backdrop { height: 320px !important; }
-  .details-main { flex-direction: column; align-items: center; gap: 20px !important; }
-  .details-poster { width: 170px !important; }
-  .details-poster img, .details-poster-skeleton { width: 170px !important; height: 255px !important; }
-  .details-title { text-align: center; font-size: clamp(24px, 7vw, 32px) !important; }
-  .details-tagline { text-align: center; }
-  .details-meta-row { justify-content: center; }
-  .details-genre-row { justify-content: center; }
-  .details-synopsis { text-align: center; font-size: 14px !important; }
-  .details-credits { justify-content: center; text-align: center; }
-  .details-action-row { flex-direction: column; width: 100%; }
-  .details-action-row > button, .details-action-row > a { width: 100%; justify-content: center; }
-  .details-cast-row { gap: 12px !important; }
-  .details-cast-card { width: 90px !important; }
-  .details-back-btn { margin-bottom: 20px !important; }
-  .details-trailer-modal { width: 94vw !important; }
-}
+  .det-tag {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 5px;
+  }
 
-@media (max-width: 420px) {
-  .details-content { padding: 72px 12px 28px !important; }
-  .details-poster { width: 145px !important; }
-  .details-poster img, .details-poster-skeleton { width: 145px !important; height: 217px !important; }
-}
+  .det-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; color: #8892a4;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    padding: 5px 11px; border-radius: 20px;
+  }
+
+  .det-genre {
+    font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: #aab2c8;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 14px; border-radius: 20px;
+  }
+
+  .det-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-size: 14.5px; font-weight: 600; transition: all 0.2s ease;
+  }
+  .det-btn:hover  { opacity: 0.9; transform: translateY(-1px); }
+  .det-btn:active { transform: translateY(0) scale(0.97); }
+  .det-btn:disabled { cursor: default; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .det-cast-card { transition: transform 0.2s ease; }
+    .det-cast-card:hover { transform: translateY(-3px); }
+    .det-cast-card:hover .det-cast-avatar { border-color: rgba(255,255,255,0.25); }
+  }
+
+  .det-trailer-overlay { animation: detFadeIn 0.15s ease-out; }
 `;
 
 const styles = {
-  container: {
-    minHeight: '100vh',
-    background: '#080c14',
-    position: 'relative',
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: '500px',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-  },
-  backdropOverlay: {
-    position: 'absolute',
-    inset: 0,
-    background: 'linear-gradient(to bottom, rgba(8,12,20,0.6) 0%, rgba(8,12,20,0.95) 100%)',
-  },
-  content: {
-    position: 'relative',
-    zIndex: 1,
-    padding: '100px 40px 40px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
   loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    gap: '16px',
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+    height: '100vh', gap: 16,
   },
   spinner: {
-    width: '50px', height: '50px',
-    border: '3px solid rgba(255,255,255,0.1)',
-    borderTop: '3px solid #e50914',
+    width: 44, height: 44,
+    border: '3px solid rgba(255,255,255,0.08)',
+    borderTop: '3px solid #e8b84b',
     borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
+    animation: 'spin 0.9s linear infinite',
   },
   backBtn: {
-    background: 'rgba(255,255,255,0.1)',
-    color: '#ccc',
-    border: '1px solid rgba(255,255,255,0.2)',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '14px',
-    marginBottom: '30px',
+    display: 'flex', alignItems: 'center', gap: 7,
+    background: 'rgba(255,255,255,0.06)', color: '#c8d0e0',
+    border: '1px solid rgba(255,255,255,0.12)',
+    padding: '9px 16px', borderRadius: 9, cursor: 'pointer',
+    fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, fontWeight: 500,
+    marginBottom: 28,
   },
-  mainInfo: {
-    display: 'flex',
-    gap: '40px',
-    flexWrap: 'wrap',
-  },
-  posterContainer: {
-    flexShrink: 0,
-    position: 'relative',
-  },
-  poster: {
-    width: '300px',
-    borderRadius: '12px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-  },
-  posterPlaceholder: {
-    width: '300px',
-    height: '450px',
-    background: 'rgba(255,255,255,0.05)',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#444',
-  },
-  info: {
-    flex: 1,
-    minWidth: '300px',
-  },
-  title: {
-    fontFamily: "'Playfair Display', serif",
-    fontSize: 'clamp(28px, 4vw, 48px)',
-    fontWeight: '900',
-    color: '#fff',
-    margin: '0 0 10px',
-  },
-  tagline: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '16px',
-    color: '#888',
-    fontStyle: 'italic',
-    margin: '0 0 15px',
-  },
-  metaRow: {
-    display: 'flex',
-    gap: '20px',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    marginBottom: '15px',
-  },
-  rating: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: '#e8b84b',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '16px',
-    fontWeight: '600',
-  },
-  metaItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: '#888',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '14px',
-  },
-  statusBadge: {
-    padding: '3px 10px',
-    borderRadius: '20px',
-    background: 'rgba(90,180,120,0.15)',
-    border: '1px solid rgba(90,180,120,0.35)',
-    color: '#7fd19c',
-    fontSize: '12px',
-    fontFamily: "'DM Sans', sans-serif",
-    fontWeight: '600',
-  },
-  genreRow: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-    marginBottom: '20px',
-  },
-  genre: {
-    padding: '6px 14px',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '20px',
-    color: '#aaa',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '13px',
-  },
-  synopsis: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '15px',
-    color: '#999',
-    lineHeight: '1.8',
-    marginBottom: '18px',
-  },
-  creditsGrid: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '10px 28px',
-    marginBottom: '10px',
-  },
-  credit: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '13px',
-    color: '#888',
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  actionRow: {
-    display: 'flex',
-    gap: '12px',
-    marginTop: '25px',
-    flexWrap: 'wrap',
-  },
-  playBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '14px 32px',
-    background: '#e50914',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600',
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  trailerBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '14px 24px',
-    background: 'rgba(255,255,255,0.08)',
-    color: '#eee',
-    border: '1px solid rgba(255,255,255,0.18)',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '600',
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  watchlistBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '14px 24px',
-    background: 'rgba(255,255,255,0.1)',
-    color: '#ccc',
-    border: '1px solid rgba(255,255,255,0.2)',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600',
-    fontFamily: "'DM Sans', sans-serif",
-  },
-  watchlistActive: {
-    background: 'rgba(232,184,75,0.15)',
-    border: '1px solid rgba(232,184,75,0.4)',
-    color: '#e8b84b',
-  },
-  imdbBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '14px 20px',
-    background: 'rgba(245,197,24,0.1)',
-    color: '#f5c518',
-    border: '1px solid rgba(245,197,24,0.3)',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    fontFamily: "'DM Sans', sans-serif",
-    textDecoration: 'none',
-  },
-  castSection: {
-    marginTop: '50px',
-  },
-  sectionTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '22px',
-    fontWeight: '600',
-    color: '#ccc',
-    marginBottom: '20px',
-  },
-  castRow: {
-    display: 'flex',
-    gap: '16px',
-    overflowX: 'auto',
-    paddingBottom: '10px',
-  },
-  castCard: {
-    flexShrink: 0,
-    width: '120px',
-    textAlign: 'center',
-  },
-  castImage: {
-    width: '80px',
-    height: '80px',
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.05)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    margin: '0 auto 8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  castName: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '13px',
-    color: '#ccc',
-    fontWeight: '500',
-    margin: '0 0 2px',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  castRole: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '11px',
-    color: '#666',
-    margin: 0,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  footerInfo: {
-    marginTop: '40px',
-    paddingTop: '20px',
-    borderTop: '1px solid rgba(255,255,255,0.08)',
-    display: 'flex',
-    gap: '20px',
-  },
-  footerLink: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: '#888',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: '13px',
-    textDecoration: 'none',
-  },
-  // Trailer modal
   trailerOverlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(0,0,0,0.85)',
+    position: 'fixed', inset: 0,
+    background: 'rgba(4,6,10,0.9)',
+    backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
     zIndex: 10000,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-  },
-  trailerModal: {
-    position: 'relative',
-    width: '900px',
-    maxWidth: '100%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 20,
   },
   trailerCloseBtn: {
-    position: 'absolute',
-    top: '-44px',
-    right: 0,
-    background: 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: '#fff',
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-  },
-  trailerAspectBox: {
-    position: 'relative',
-    width: '100%',
-    paddingTop: '56.25%', // 16:9
-    background: '#000',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-  },
-  trailerIframe: {
-    position: 'absolute',
-    top: 0, left: 0,
-    width: '100%',
-    height: '100%',
-    border: 'none',
+    position: 'absolute', top: -44, right: 0,
+    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)',
+    color: '#fff', width: 36, height: 36, borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
   },
 };

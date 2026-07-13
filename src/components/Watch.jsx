@@ -35,19 +35,6 @@ export default function Watch() {
   const videoWrapperRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const handleFullscreen = () => {
-    const el = videoWrapperRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); // Safari
-      else if (el.msRequestFullscreen) el.msRequestFullscreen(); // old Edge/IE
-    } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-      else if (document.msExitFullscreen) document.msExitFullscreen();
-    }
-  };
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -243,8 +230,8 @@ export default function Watch() {
       sources.push({
         name: 'DemiGod👑',
         url: seriesFlag
-          ? `https://vidcore.org/embed/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://vidcore.org/embed/movie/${tmdbId || anyId}?color=e8b84b`,
+          ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://vidcore.net/movie/${tmdbId || anyId}?color=e8b84b`,
         quality: 'HD', id: 'vidsrcwtf'
       });
 
@@ -346,15 +333,6 @@ export default function Watch() {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 title={media.title}
               />
-            )}
-            {!useDirect && ['vidsrcwtf'].includes(sources[currentSource]?.id) && (
-              <button
-                onClick={handleFullscreen}
-                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                style={styles.fullscreenBtn}
-              >
-                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-              </button>
             )}
           </div>
         )}
