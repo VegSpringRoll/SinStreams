@@ -220,8 +220,8 @@ export default function Watch() {
         sources.push({
           name: 'God👑',
           url: seriesFlag
-            ? `https://vidsrc-embed.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vidsrc-embed.ru/embed/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vsembed.ru/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vsembed.ru/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
