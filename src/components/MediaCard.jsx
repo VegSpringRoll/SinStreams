@@ -201,13 +201,13 @@ export default function MediaCard({
             display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.09em",
               padding: "3px 7px", borderRadius: 5, background: `${cfg.accent}22`,
-              border: `1px solid ${cfg.accent}44`, color: cfg.accent, backdropFilter: "blur(4px)" }}>
+              border: `1px solid ${cfg.accent}44`, color: cfg.accent }}>
               {cfg.label}
             </span>
             {qualityCfg && (
               <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
                 padding: "3px 7px", borderRadius: 5, background: qualityCfg.bg, color: qualityCfg.color,
-                border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(4px)" }}>
+                border: "1px solid rgba(255,255,255,0.08)" }}>
                 {qualityCfg.label}
               </span>
             )}
@@ -243,20 +243,21 @@ export default function MediaCard({
           )}
 
           {/* Play button */}
-          <AnimatePresence>
-            {showActionsOverlay && (
-              <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7 }} transition={{ duration: 0.2, ease: EASE }}
-                style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 8 }}>
-                <div className="mc-play-btn" onClick={handlePlay}
-                  style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.18)",
-                    border: "2px solid rgba(255,255,255,0.55)", display: "flex", alignItems: "center",
-                    justifyContent: "center", backdropFilter: "blur(3px)", cursor: "pointer" }}>
-                  <Play size={18} fill="white" color="white" style={{ marginLeft: 3 }} />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 8 }}>
+            <AnimatePresence>
+              {showActionsOverlay && (
+                <motion.div initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.7 }} transition={{ duration: 0.2, ease: EASE }}>
+                  <div className="mc-play-btn" onClick={handlePlay}
+                    style={{ width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.2)",
+                      border: "2px solid rgba(255,255,255,0.55)", display: "flex", alignItems: "center",
+                      justifyContent: "center", cursor: "pointer" }}>
+                    <Play size={18} fill="white" color="white" style={{ marginLeft: 2 }} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Watchlist button */}
           <AnimatePresence>
@@ -273,7 +274,7 @@ export default function MediaCard({
                   zIndex: 10, border: "none", cursor: watchlistBusy ? "default" : "pointer",
                   background: inWatchlist ? `${cfg.accent}33` : "rgba(0,0,0,0.65)",
                   boxShadow: inWatchlist ? `0 0 0 1.5px ${cfg.accent}` : "0 0 0 1.5px rgba(255,255,255,0.3)",
-                  backdropFilter: "blur(3px)", color: inWatchlist ? cfg.accent : "white",
+                  color: inWatchlist ? cfg.accent : "white",
                   opacity: watchlistBusy ? 0.7 : 1,
                 }}
               >
