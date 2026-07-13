@@ -393,7 +393,7 @@ export default function VideoPlayer({ media, onClose }) {
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                 title={media.title}
               />
-              {['vidlux'].includes(sources[currentSource]?.id) && (
+              {['vidsrcwtf'].includes(sources[currentSource]?.id) && (
                 <button onClick={handleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"} style={styles.fullscreenBtn}>
                   {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
                 </button>

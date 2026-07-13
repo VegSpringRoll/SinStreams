@@ -347,7 +347,7 @@ export default function Watch() {
                 title={media.title}
               />
             )}
-            {!useDirect && ['vidlux'].includes(sources[currentSource]?.id) && (
+            {!useDirect && ['vidsrcwtf'].includes(sources[currentSource]?.id) && (
               <button
                 onClick={handleFullscreen}
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
