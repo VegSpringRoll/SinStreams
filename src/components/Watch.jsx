@@ -233,8 +233,8 @@ export default function Watch() {
         sources.push({
           name: 'God👑',
           url: seriesFlag
-            ? `https://vidcore.org/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vidcore.org/embed/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://embed.filmu.in/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://embed.filmu.in/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
@@ -243,8 +243,8 @@ export default function Watch() {
       sources.push({
         name: 'DemiGod👑',
         url: seriesFlag
-          ? `https://embed.filmu.in/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://embed.filmu.in/movie/${tmdbId || anyId}?color=e8b84b`,
+          ? `https://vidcore.org/embed/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
+          : `https://vidcore.org/embed/movie/${tmdbId || anyId}?color=e8b84b`,
         quality: 'HD', id: 'vidsrcwtf'
       });
 
