@@ -207,10 +207,10 @@ export default function VideoPlayer({ media, onClose }) {
       
       // #5 - VIDNEST (Needs tmdbId, fallback to anyId)
       sources.push({
-        name: 'Elite👑',
+        name: 'HD Elite👑',
         url: isSeries 
-          ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` 
-          : `https://vidnest.fun/movie/${tmdbId || anyId}`,
+          ? `https://multiembed.mov/?video_id=${tmdbId || anyId}${tmdbId ? '&tmdb=1' : ''}&s=${season}&e=${episode}`
+          : `https://multiembed.mov/?video_id=${tmdbId || anyId}${tmdbId ? '&tmdb=1' : ''}`,
         quality: 'HD/4K',
         id: 'vidnest'
       });
