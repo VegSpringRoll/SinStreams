@@ -209,8 +209,8 @@ export default function VideoPlayer({ media, onClose }) {
       sources.push({
         name: 'HD Elite👑',
         url: isSeries 
-          ? `https://multiembed.mov/?video_id=${tmdbId || anyId}${tmdbId ? '&tmdb=1' : ''}&s=${season}&e=${episode}`
-          : `https://multiembed.mov/?video_id=${tmdbId || anyId}${tmdbId ? '&tmdb=1' : ''}`,
+          ? `https://rivestream.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}` 
+          : `https://rivestream.ru/embed/movie/${tmdbId || anyId}`,
         quality: 'HD/4K',
         id: 'vidnest'
       });
