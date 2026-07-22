@@ -246,9 +246,9 @@ export default function Watch() {
         quality: 'HD', id: '2embed'
       });
       sources.push({
-        name: 'HD Elite👑',
-        url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId || anyId}/${season}/${episode}` 
-          : `https://vidlink.pro/movie/${tmdbId || anyId}`,
+        name: 'HD Elite🌟',
+        url: seriesFlag ? `https://player.videasy.net/tv/${tmdbId || anyId}/${season}/${episode}` 
+          : `https://player.videasy.net/movie/${tmdbId || anyId}`,
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
@@ -258,7 +258,7 @@ export default function Watch() {
       });
 
       if (tmdbId) {
-        sources.push({ name: 'VidLink', url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
+        sources.push({ name: 'Vid HD ✨', url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
       }
 
       setSources(sources);

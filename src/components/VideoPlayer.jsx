@@ -207,10 +207,10 @@ export default function VideoPlayer({ media, onClose }) {
       
       // #5 - VIDNEST (Needs tmdbId, fallback to anyId)
       sources.push({
-        name: 'HD Elite👑',
+        name: 'HD Elite🌟',
         url: isSeries 
-          ? `https://vidlink.pro/tv/${tmdbId || anyId}/${season}/${episode}` 
-          : `https://vidlink.pro/movie/${tmdbId || anyId}`,
+          ? `https://player.videasy.net/tv/${tmdbId || anyId}/${season}/${episode}` 
+          : `https://player.videasy.net/movie/${tmdbId || anyId}`,
         quality: 'HD/4K',
         id: 'vidnest'
       });
@@ -228,7 +228,7 @@ export default function VideoPlayer({ media, onClose }) {
       // Bonus source (kept as-is, not part of the numbered list)
       if (tmdbId) {
         sources.push({
-          name: 'VidLink',
+          name: 'Vid HD ✨',
           url: isSeries ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`,
           quality: 'HD',
           id: 'vidlink'
