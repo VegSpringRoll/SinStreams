@@ -247,8 +247,8 @@ export default function Watch() {
       });
       sources.push({
         name: 'HD Elite👑',
-        url: seriesFlag ? `https://rivestream.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}` 
-          : `https://rivestream.ru/embed/movie/${tmdbId || anyId}`,
+        url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId || anyId}/${season}/${episode}` 
+          : `https://vidlink.pro/movie/${tmdbId || anyId}`,
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
