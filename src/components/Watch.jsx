@@ -246,8 +246,9 @@ export default function Watch() {
         quality: 'HD', id: '2embed'
       });
       sources.push({
-        name: 'Elite👑',
-        url: seriesFlag ? `https://vidnest.fun/tv/${tmdbId || anyId}/${season}/${episode}` : `https://vidnest.fun/movie/${tmdbId || anyId}`,
+        name: 'HD Elite👑',
+        url: seriesFlag ? `https://multiembed.mov/?video_id=${tmdbId || anyId}${tmdbId ? '&tmdb=1' : ''}&s=${season}&e=${episode}`
+                        : `https://multiembed.mov/?video_id=${tmdbId || anyId}${tmdbId ? '&tmdb=1' : ''}`,
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
