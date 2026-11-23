@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Info, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// ─── Type config ──────────────────────────────────────────────────────────────
+// ─── Pure Monochrome Type config ─────────────────────────────────────────────
 const TYPE_CONFIG = {
-  movie:  { label: "FILM",   accent: "#e8b84b", glow: "rgba(232,184,75,0.2)"  },
-  series: { label: "SERIES", accent: "#5ba4d4", glow: "rgba(91,164,212,0.2)"  },
-  anime:  { label: "ANIME",  accent: "#e05fa0", glow: "rgba(224,95,160,0.2)"  },
+  movie:  { label: "FILM",   accent: "#ffffff", glow: "rgba(255,255,255,0.2)" },
+  series: { label: "SERIES", accent: "#e4e4e7", glow: "rgba(255,255,255,0.18)" },
+  anime:  { label: "ANIME",  accent: "#d4d4d8", glow: "rgba(255,255,255,0.18)" },
 };
 
 const DEFAULT_SLIDES = [
@@ -45,8 +45,7 @@ const DEFAULT_SLIDES = [
 
 const AUTOPLAY_INTERVAL = 7000;
 
-// Serve a lighter backdrop size on mobile — 'original' TMDB images can be
-// several MB, which is wasteful (and slow) on phone connections.
+// Serve a lighter backdrop size on mobile
 const getBackdrop = (url, mobile) => {
   if (!url) return url;
   if (!url.includes("image.tmdb.org/t/p/")) return url;
@@ -59,7 +58,7 @@ export default function HeroSlider({
   onPlay,
 }) {
   if (!slides || slides.length === 0) {
-    return <div style={{ height: "100vh", background: "#080c14" }} />;
+    return <div style={{ height: "100vh", background: "#030304" }} />;
   }
 
   const [current,   setCurrent]   = useState(0);
@@ -71,20 +70,21 @@ export default function HeroSlider({
   const intervalRef = useRef(null);
   const progressRef = useRef(null);
   const navigate = useNavigate();
-// ── Responsive: detect mobile viewport ──────────────────────────────────────
-const [isMobile, setIsMobile] = useState(
-  typeof window !== "undefined" ? window.innerWidth <= 768 : false
-);
-useEffect(() => {
-  const onResize = () => setIsMobile(window.innerWidth <= 768);
-  window.addEventListener("resize", onResize);
-  return () => window.removeEventListener("resize", onResize);
-}, []);
 
-  const slide    = slides[current];
-  const cfg      = TYPE_CONFIG[slide?.type] || TYPE_CONFIG.movie;
+  // ── Responsive: detect mobile viewport ──
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const slide   = slides[current];
+  const cfg     = TYPE_CONFIG[slide?.type] || TYPE_CONFIG.movie;
   const quality = slide.torrents?.["2160p"] ? "2160p" : slide.torrents?.["1080p"] ? "1080p" : slide.torrents?.["720p"] ? "720p" : null;
-  const score = slide?.rating?.percentage ? (slide.rating.percentage / 10).toFixed(1) : null;
+  const score   = slide?.rating?.percentage ? (slide.rating.percentage / 10).toFixed(1) : null;
 
   // ── Auto-advance ────────────────────────────────────────────────────────────
   const goTo = useCallback((idx, dir = 1) => {
@@ -127,7 +127,7 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", onKey);
   }, [goNext, goPrev]);
 
-  // 🎬 Handle Watch - Navigate to Watch page
+  // Handle Watch - Navigate to Details page
   const handleWatch = () => {
     const mediaId = slide._id || slide.imdb_id;
     let mediaType = slide.type;
@@ -136,63 +136,64 @@ useEffect(() => {
   };
 
   const variants = {
-    enter:  (d) => ({ opacity: 0, x: d > 0 ? 60  : -60,  scale: 1.02 }),
-    center: {      opacity: 1, x: 0,              scale: 1    },
-    exit:   (d) => ({ opacity: 0, x: d > 0 ? -60 : 60,   scale: 0.98 }),
+    enter:  (d) => ({ opacity: 0, x: d > 0 ? 50 : -50, scale: 1.02 }),
+    center: {      opacity: 1, x: 0, scale: 1 },
+    exit:   (d) => ({ opacity: 0, x: d > 0 ? -50 : 50, scale: 0.98 }),
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
         .hs-root * { box-sizing: border-box; }
         .hs-btn {
           border: none; cursor: pointer;
-          font-family: 'DM Sans', sans-serif;
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          transition: all 0.2s ease;
-          font-weight: 500; letter-spacing: 0.03em;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          display: flex; align-items: center; justify-content: center; gap: 9px;
+          transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+          font-weight: 600; letter-spacing: 0.02em;
         }
-        .hs-btn:hover  { opacity: 0.88; transform: translateY(-2px); }
+        .hs-btn:hover  { transform: translateY(-2px); }
         .hs-btn:active { transform: translateY(0) scale(0.97); }
-        .hs-dot { cursor: pointer; transition: all 0.25s; border: none; padding: 0; }
+        
         .hs-arrow {
           cursor: pointer; border: none;
           display: flex; align-items: center; justify-content: center;
           transition: all 0.2s;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.14);
           border-radius: 50%;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
         .hs-arrow:hover {
-          background: rgba(255,255,255,0.15);
-          border-color: rgba(255,255,255,0.25);
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.4);
+          box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
           transform: scale(1.08);
         }
         .hs-tag {
-          font-family: 'DM Sans', sans-serif;
-          font-size: 10px; font-weight: 600;
-          letter-spacing: 0.1em; text-transform: uppercase;
-          padding: 4px 10px; border-radius: 4px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 10px; font-weight: 700;
+          letter-spacing: 0.12em; text-transform: uppercase;
+          padding: 4px 10px; border-radius: 5px;
         }
         .hs-glass {
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
         }
         .hs-viewport {
           position: relative;
           width: 100%;
           overflow: hidden;
-          background: #060a12;
+          background: #030304;
           height: 100vh;
           height: 100svh;
-          min-height: 560px;
+          min-height: 580px;
         }
         @media (max-width: 768px) {
           .hs-viewport {
-            height: 90vh;
-            height: 90svh;
-            min-height: 500px;
+            height: 88vh;
+            height: 88svh;
+            min-height: 480px;
           }
         }
       `}</style>
@@ -227,98 +228,101 @@ useEffect(() => {
               style={{ display: "none" }}
               onLoad={() => setImgLoaded(p => ({ ...p, [slide._id]: true }))}
             />
+            {/* Obsidian pure monochrome dark vignettes */}
             <div style={{
               position: "absolute", inset: 0,
-              background: "linear-gradient(90deg, rgba(6,10,18,0.97) 0%, rgba(6,10,18,0.7) 40%, rgba(6,10,18,0.15) 70%, rgba(6,10,18,0.4) 100%)",
+              background: "linear-gradient(90deg, rgba(3,3,4,0.98) 0%, rgba(3,3,4,0.82) 42%, rgba(3,3,4,0.2) 75%, rgba(3,3,4,0.55) 100%)",
             }} />
             <div style={{
               position: "absolute", inset: 0,
-              background: "linear-gradient(to top, rgba(6,10,18,1) 0%, rgba(6,10,18,0.5) 30%, transparent 60%)",
+              background: "linear-gradient(to top, rgba(3,3,4,1) 0%, rgba(3,3,4,0.7) 25%, transparent 60%)",
             }} />
             <div style={{
               position: "absolute", inset: 0,
-              background: `radial-gradient(ellipse 60% 50% at 80% 50%, ${cfg.glow}, transparent)`,
+              background: "radial-gradient(ellipse 70% 50% at 80% 40%, rgba(255, 255, 255, 0.05), transparent 75%)",
             }} />
           </motion.div>
         </AnimatePresence>
 
         {/* CONTENT */}
         <div className="hs-content" style={{
-  position: "absolute", inset: 0,
-  display: "flex", alignItems: "center",
-  padding: isMobile ? "0 20px" : "0 64px",
-  paddingTop: 80,
-}}>
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center",
+          padding: isMobile ? "0 20px" : "0 64px",
+          paddingTop: 85,
+        }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={slide._id + "_content"}
               custom={direction}
-              initial={{ opacity: 0, x: direction > 0 ? 40 : -40 }}
+              initial={{ opacity: 0, x: direction > 0 ? 35 : -35 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction > 0 ? -30 : 30 }}
-              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-              style={{ maxWidth: isMobile ? "100%" : 580, zIndex: 2 }}
+              exit={{ opacity: 0, x: direction > 0 ? -25 : 25 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+              style={{ maxWidth: isMobile ? "100%" : 600, zIndex: 2 }}
             >
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}
+                transition={{ delay: 0.18, duration: 0.4 }}
+                style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}
               >
                 <span className="hs-tag" style={{
-                  background: `${cfg.accent}22`,
-                  border: `1px solid ${cfg.accent}44`,
-                  color: cfg.accent,
+                  background: "rgba(255, 255, 255, 0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  color: "#ffffff",
+                  boxShadow: "0 0 10px rgba(255, 255, 255, 0.08)",
                 }}>{cfg.label}</span>
+
                 {slide.year && (
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#5a6480", fontWeight: 400 }}>{slide.year}</span>
+                  <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "#a1a1aa", fontWeight: 500 }}>{slide.year}</span>
                 )}
-                <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#2a3550" }} />
+                <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(255, 255, 255, 0.25)" }} />
                 {score && (
-                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#e8b84b", fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
-                    ★ {score}
+                  <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "#ffffff", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                    <Star size={12} fill="#ffffff" color="#ffffff" /> {score}
                   </span>
                 )}
                 {quality && (
                   <>
-                    <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#2a3550" }} />
-                    <span className="hs-tag" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#6878a0", fontSize: 9 }}>
-                      {quality === "2160p" ? "4K" : quality}
+                    <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(255, 255, 255, 0.25)" }} />
+                    <span className="hs-tag" style={{ background: "rgba(255, 255, 255, 0.06)", border: "1px solid rgba(255, 255, 255, 0.14)", color: "#e4e4e7", fontSize: 9 }}>
+                      {quality === "2160p" ? "4K ULTRA HD" : quality}
                     </span>
                   </>
                 )}
               </motion.div>
 
               <motion.h1
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.22, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "clamp(30px, 4.5vw, 66px)",
+                  fontFamily: "'Cinzel', 'Playfair Display', serif",
+                  fontSize: "clamp(30px, 4.8vw, 68px)",
                   fontWeight: 900,
                   lineHeight: 1.05,
-                  letterSpacing: "-0.02em",
+                  letterSpacing: "-0.01em",
                   marginBottom: isMobile ? 12 : 18,
-                  color: "#eef0f8",
-                  textShadow: "0 2px 40px rgba(0,0,0,0.5)",
+                  color: "#ffffff",
+                  textShadow: "0 4px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.15)",
                 }}
               >{slide.title}</motion.h1>
 
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}
+                transition={{ delay: 0.28, duration: 0.4 }}
+                style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}
               >
                 {(slide.genres || []).slice(0, isMobile ? 2 : 3).map((g, i) => (
                   <span key={i} style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 11, color: "#4a5878",
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: 4, padding: "3px 10px",
-                    fontWeight: 400, letterSpacing: "0.04em",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontSize: 11, color: "#d4d4d8",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    borderRadius: 6, padding: "3px 10px",
+                    fontWeight: 500, letterSpacing: "0.03em",
                   }}>{g}</span>
                 ))}
               </motion.div>
@@ -326,47 +330,49 @@ useEffect(() => {
               <motion.p
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.4 }}
+                transition={{ delay: 0.32, duration: 0.4 }}
                 style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: isMobile ? 13 : 14, lineHeight: 1.7,
-                  color: "#6878a0", fontWeight: 300,
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: isMobile ? 13.5 : 14.5, lineHeight: 1.7,
+                  color: "#a1a1aa", fontWeight: 400,
                   marginBottom: isMobile ? 22 : 32,
                   display: "-webkit-box",
                   WebkitLineClamp: isMobile ? 2 : 3,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
-                  maxWidth: 500,
+                  maxWidth: 520,
                 }}
               >{slide.synopsis}</motion.p>
 
               <motion.div
+                className="hs-buttons"
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
-                style={{ display: "flex", gap: isMobile ? 10 : 12, alignItems: "stretch" }}
+                transition={{ delay: 0.38, duration: 0.4 }}
+                style={{ display: "flex", gap: isMobile ? 10 : 14, alignItems: "stretch" }}
               >
-                {/* Watch Now - Opens VideoPlayer */}
+                {/* Watch Now - Pure high contrast solid white button */}
                 <button
                   className="hs-btn"
                   onClick={handleWatch}
                   style={{
                     flex: isMobile ? 1 : "0 0 auto",
-                    padding: isMobile ? "12px 20px" : "13px 32px",
-                    height: isMobile ? 46 : 50,
-                    borderRadius: 10,
-                    background: `linear-gradient(135deg, ${cfg.accent}, ${cfg.accent}cc)`,
-                    color: "#0a0a0a",
+                    padding: isMobile ? "12px 22px" : "14px 34px",
+                    height: isMobile ? 46 : 52,
+                    borderRadius: 11,
+                    background: "#ffffff",
+                    color: "#030304",
                     fontSize: isMobile ? 14 : 15,
-                    fontWeight: 600,
+                    fontWeight: 700,
                     whiteSpace: "nowrap",
-                    boxShadow: `0 8px 28px ${cfg.glow}`,
+                    boxShadow: "0 0 20px rgba(255, 255, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.6)",
                   }}
                 >
-                  <Play size={17} fill="currentColor" />
+                  <Play size={17} fill="#030304" color="#030304" />
                   Watch Now
                 </button>
 
+                {/* Details - Frosted Charcoal Glass */}
                 <button
                   className="hs-btn hs-glass"
                   onClick={handleWatch}
@@ -375,14 +381,15 @@ useEffect(() => {
                   style={{
                     flex: "0 0 auto",
                     width: isMobile ? 46 : "auto",
-                    padding: isMobile ? 0 : "13px 24px",
-                    height: isMobile ? 46 : 50,
-                    borderRadius: 10,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.14)",
-                    color: "#c8d0e0",
+                    padding: isMobile ? 0 : "14px 26px",
+                    height: isMobile ? 46 : 52,
+                    borderRadius: 11,
+                    background: "rgba(255, 255, 255, 0.07)",
+                    border: "1px solid rgba(255, 255, 255, 0.18)",
+                    color: "#ffffff",
                     fontSize: 15,
                     whiteSpace: "nowrap",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
                   }}
                 >
                   <Info size={18} />
@@ -393,55 +400,53 @@ useEffect(() => {
           </AnimatePresence>
         </div>
 
-        {/* THUMBNAIL STRIP */}
-        {/* THUMBNAIL STRIP */}
-{!isMobile && (
-  <div className="hs-thumbnails" style={{
-    position: "absolute", right: 48, top: "50%",
-    transform: "translateY(-50%)",
-    display: "flex", flexDirection: "column", gap: 12,
-    zIndex: 10,
-  }}>
-    {slides.map((s, i) => {
-      const isActive = i === current;
-      const sCfg = TYPE_CONFIG[s.type] || TYPE_CONFIG.movie;
-      return (
-        <motion.div
-          key={s._id}
-          onClick={() => goTo(i, i > current ? 1 : -1)}
-          animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.92 }}
-          transition={{ duration: 0.25 }}
-          style={{
-            width: 56, height: 80, borderRadius: 7, overflow: "hidden", cursor: "pointer",
-            border: isActive ? `2px solid ${sCfg.accent}` : "2px solid rgba(255,255,255,0.08)",
-            boxShadow: isActive ? `0 0 16px ${sCfg.glow}` : "none",
-            background: "#0d1420", flexShrink: 0,
-          }}
-        >
-          <img
-            src={s.images?.poster || s.images?.fanart}
-            alt={s.title}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            onError={e => { e.target.style.display = "none"; }}
-          />
-        </motion.div>
-      );
-    })}
-  </div>
-)}
+        {/* THUMBNAIL STRIP (Desktop only) */}
+        {!isMobile && (
+          <div className="hs-thumbnails" style={{
+            position: "absolute", right: 48, top: "50%",
+            transform: "translateY(-50%)",
+            display: "flex", flexDirection: "column", gap: 12,
+            zIndex: 10,
+          }}>
+            {slides.map((s, i) => {
+              const isActive = i === current;
+              return (
+                <motion.div
+                  key={s._id}
+                  onClick={() => goTo(i, i > current ? 1 : -1)}
+                  animate={{ opacity: isActive ? 1 : 0.45, scale: isActive ? 1 : 0.92 }}
+                  transition={{ duration: 0.25 }}
+                  style={{
+                    width: 58, height: 84, borderRadius: 8, overflow: "hidden", cursor: "pointer",
+                    border: isActive ? `2px solid #ffffff` : "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: isActive ? "0 0 18px rgba(255, 255, 255, 0.3)" : "none",
+                    background: "#0e0e12", flexShrink: 0,
+                  }}
+                >
+                  <img
+                    src={s.images?.poster || s.images?.fanart}
+                    alt={s.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    onError={e => { e.target.style.display = "none"; }}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
         {/* BOTTOM CONTROLS */}
         <div style={{
-  position: "absolute", bottom: isMobile ? 20 : 36, left: isMobile ? 20 : 64, right: isMobile ? 20 : 64,
-  display: "flex", alignItems: "center", gap: isMobile ? 12 : 20, zIndex: 10,
-}}>
+          position: "absolute", bottom: isMobile ? 22 : 36, left: isMobile ? 20 : 64, right: isMobile ? 20 : 64,
+          display: "flex", alignItems: "center", gap: isMobile ? 12 : 20, zIndex: 10,
+        }}>
           {!isMobile && (
             <>
-              <button className="hs-arrow" onClick={goPrev} style={{ width: 38, height: 38 }}>
-                <ChevronLeft size={18} color="#8892a4" />
+              <button className="hs-arrow" onClick={goPrev} style={{ width: 40, height: 40 }}>
+                <ChevronLeft size={18} color="#ffffff" />
               </button>
-              <button className="hs-arrow" onClick={goNext} style={{ width: 38, height: 38 }}>
-                <ChevronRight size={18} color="#8892a4" />
+              <button className="hs-arrow" onClick={goNext} style={{ width: 40, height: 40 }}>
+                <ChevronRight size={18} color="#ffffff" />
               </button>
             </>
           )}
@@ -454,15 +459,16 @@ useEffect(() => {
                   key={s._id}
                   onClick={() => goTo(i, i > current ? 1 : -1)}
                   style={{
-                    position: "relative", height: 3,
-                    width: isActive ? (isMobile ? 28 : 40) : (isMobile ? 14 : 20), borderRadius: 2,
-                    background: "rgba(255,255,255,0.15)", cursor: "pointer", overflow: "hidden",
+                    position: "relative", height: 3.5,
+                    width: isActive ? (isMobile ? 30 : 44) : (isMobile ? 14 : 22), borderRadius: 2,
+                    background: "rgba(255, 255, 255, 0.18)", cursor: "pointer", overflow: "hidden",
                   }}
                 >
                   {isActive && (
                     <motion.div style={{
                       position: "absolute", left: 0, top: 0, bottom: 0,
-                      background: cfg.accent, borderRadius: 2, width: `${progress}%`,
+                      background: "#ffffff", borderRadius: 2, width: `${progress}%`,
+                      boxShadow: "0 0 8px rgba(255, 255, 255, 0.8)",
                     }} />
                   )}
                 </div>
@@ -470,15 +476,16 @@ useEffect(() => {
             })}
           </div>
 
-          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#3a4560", marginLeft: 4 }}>
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: "#71717a", marginLeft: 6, fontWeight: 500 }}>
             {String(current + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
           </span>
         </div>
 
+        {/* Bottom smooth dark vignette fade */}
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
-          height: 120,
-          background: "linear-gradient(to bottom, transparent, #080c14)",
+          height: 140,
+          background: "linear-gradient(to bottom, transparent, #030304)",
           pointerEvents: "none",
         }} />
       </div>

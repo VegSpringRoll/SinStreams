@@ -3,47 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SinStreams</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  /* These ONLY apply on mobile - won't affect desktop at all */
+  /* Mobile optimization rules — preserve all touch usability & responsive layouts */
   @media (max-width: 768px) {
     /* Navbar */
     .sinema-nav {
       padding: 0 16px !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
     }
     
-    /* Hero slider - smaller height on mobile */
+    /* Hero slider - responsive height on mobile */
     .hero-slider-container {
-      height: 60vh !important;
-      min-height: 400px !important;
+      height: 65vh !important;
+      min-height: 420px !important;
     }
     
-    /* Hero content - less padding, smaller text */
+    /* Hero content - proper padding & spacing */
     .hero-slider-container .hs-content {
       padding: 0 20px !important;
+      padding-top: 70px !important;
     }
     
-    /* Hero title - smaller on mobile */
+    /* Hero title - scalable on mobile */
     .hero-slider-container h1 {
       font-size: 28px !important;
-      margin-bottom: 10px !important;
+      margin-bottom: 12px !important;
+      line-height: 1.15 !important;
     }
     
-    /* Hero buttons - stack on mobile */
+    /* Hero buttons - stack nicely on mobile */
     .hero-slider-container .hs-buttons {
       flex-wrap: wrap !important;
-      gap: 8px !important;
+      gap: 10px !important;
     }
     
-    /* Hero buttons - smaller */
+    /* Hero buttons - touch friendly sizing */
     .hero-slider-container .hs-btn {
       padding: 10px 20px !important;
       font-size: 13px !important;
     }
     
-    /* Hero synopsis - hide on very small screens */
+    /* Hero synopsis - hide or clamp on smaller screens */
     .hero-slider-container p {
-      display: none !important;
+      display: -webkit-box !important;
+      -webkit-line-clamp: 2 !important;
+      -webkit-box-orient: vertical !important;
+      overflow: hidden !important;
     }
     
     /* Hero thumbnails - hide on mobile */
@@ -54,8 +67,8 @@
   
   @media (max-width: 480px) {
     .hero-slider-container {
-      height: 50vh !important;
-      min-height: 300px !important;
+      height: 58vh !important;
+      min-height: 340px !important;
     }
     
     .hero-slider-container h1 {
@@ -64,7 +77,8 @@
     
     .hero-slider-container .hs-btn {
       padding: 8px 16px !important;
-      font-size: 12px !important;}
+      font-size: 12px !important;
+    }
     
     /* Grid */
     .media-grid {
@@ -86,8 +100,7 @@
       border-radius: 0 !important;
     }
     
-    /* Details page */
-     /* Details page - center everything */
+    /* Details page - center cleanly on mobile */
     .details-main {
       flex-direction: column !important;
       align-items: center !important;
@@ -153,7 +166,7 @@
   
   @media (max-width: 480px) {
     .media-grid {
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
       gap: 10px !important;
     }
     /* Watch page episode controls */
@@ -175,12 +188,15 @@
       gap: 8px !important;
     }
     
-    /* Select dropdowns - smaller */
+    /* Select dropdowns */
     .episode-controls select {
       width: 100% !important;
       min-width: auto !important;
       padding: 8px 10px !important;
       font-size: 12px !important;
+      background: rgba(18, 18, 22, 0.9) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      color: #fff !important;
     }
     
     /* Select group - take equal space */
@@ -196,7 +212,7 @@
     
     .source-buttons button {
       padding: 6px 10px !important;
-      font-size: 10px !important;
+      font-size: 11px !important;
     }
     
     /* Video controls section */
@@ -214,63 +230,50 @@
     
     .source-buttons button {
       padding: 5px 8px !important;
-      font-size: 9px !important;
+      font-size: 10px !important;
     }
-    /* Search overlay - center it */
+    /* Search overlay - centered frosted card */
     .sin-search-overlay {
       left: 10px !important;
       right: 10px !important;
       transform: translateX(0) !important;
-      top: 80px !important;
+      top: 76px !important;
       width: auto !important;
       max-width: calc(100vw - 20px) !important;
+      border-radius: 14px !important;
     }
     
     /* Search input */
     .sin-search-input {
-      font-size: 13px !important;
+      font-size: 14px !important;
     }
     
     /* Search results */
     .sin-search-overlay .sin-result-item {
-      padding: 8px 12px !important;
+      padding: 10px 12px !important;
     }
     
-    /* Mini poster smaller */
+    /* Mini poster */
     .sin-search-overlay .sin-result-item > div:first-child {
-      width: 30px !important;
-      height: 42px !important;
+      width: 34px !important;
+      height: 48px !important;
     }
     
-    /* Result title smaller */
+    /* Result title */
     .sin-search-overlay .sin-result-item .sin-result-title {
-      font-size: 12px !important;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .sin-search-overlay {
-      top: 70px !important;
-      left: 5px !important;
-      right: 5px !important;
-      max-width: calc(100vw - 10px) !important;
-      border-radius: 10px !important;
+      font-size: 13px !important;
     }
   }
 </style>
-    <title>sinstreams</title>
     <script>
   // Block common ad/popup scripts
   window.addEventListener('load', function() {
-    // Block popunders
     setInterval(function() {
       if (window.opener || document.hidden === false) {
-        // Keep focus on current window
       }
     }, 1000);
   });
 
-  // Prevent beforeunload popups
   window.addEventListener('beforeunload', function(e) {
     e.stopImmediatePropagation();
   }, true);

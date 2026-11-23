@@ -1,25 +1,35 @@
 :root {
-  --text: #8892a4;
-  --text-h: #e8eaf0;
-  --bg: #080c14;
-  --border: rgba(255, 255, 255, 0.08);
-  --code-bg: #0d1420;
-  --accent: #e8b84b;
-  --accent-bg: rgba(232, 184, 75, 0.1);
-  --accent-border: rgba(232, 184, 75, 0.5);
-  --social-bg: rgba(13, 20, 32, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.3) 0 4px 6px -2px;
+  --bg-deep: #030304;
+  --bg-obsidian: #070709;
+  --bg-charcoal: #0e0e12;
+  --bg-glass: rgba(18, 18, 22, 0.65);
+  --bg-glass-card: rgba(22, 22, 28, 0.55);
+  --bg-glass-hover: rgba(255, 255, 255, 0.08);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --text-white: #ffffff;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glass: rgba(255, 255, 255, 0.12);
+  --border-glow: rgba(255, 255, 255, 0.28);
+  --border-bright: rgba(255, 255, 255, 0.6);
+
+  --glow-soft: 0 0 20px rgba(255, 255, 255, 0.12);
+  --glow-bright: 0 0 30px rgba(255, 255, 255, 0.25);
+  --glow-silver: 0 0 15px rgba(255, 255, 255, 0.15);
+
+  --font-serif: 'Cinzel', 'Playfair Display', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  font: 16px/150% var(--font-sans);
+  letter-spacing: 0.01em;
   color-scheme: dark;
-  color: var(--text);
-  background: var(--bg);
+  color: var(--text-primary);
+  background: var(--bg-deep);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -32,62 +42,133 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  scroll-behavior: smooth;
+  background: var(--bg-deep);
+}
+
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background: var(--bg-deep);
+  color: var(--text-primary);
   overflow-x: hidden;
   min-height: 100%;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
   width: 100%;
   min-height: 100svh;
   margin: 0;
-  background: var(--bg);
+  background: var(--bg-deep);
+  display: flex;
+  flex-direction: column;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* Atmospheric Background Illumination - Pure soft white specular ambient */
+.sin-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 255, 255, 0.06), transparent 70%),
+    radial-gradient(circle 600px at 80% 40%, rgba(255, 255, 255, 0.02), transparent 70%),
+    radial-gradient(circle 500px at 20% 80%, rgba(255, 255, 255, 0.02), transparent 70%),
+    #030304;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+/* Frosted Charcoal Glass Panel Utilities */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+
+.glass-panel-hover:hover {
+  border-color: var(--border-glow);
+  box-shadow: 
+    0 16px 40px 0 rgba(0, 0, 0, 0.7),
+    0 0 20px 0 rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
 }
-p {
+
+/* Silver Glowing Border Effect */
+.glow-border {
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.08);
+}
+
+.glow-border:hover {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--text-white);
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+h1 {
+  font-size: clamp(28px, 5vw, 56px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+h2 {
+  font-size: clamp(20px, 3.5vw, 32px);
+  line-height: 1.2;
+}
+
+p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Custom Minimal Monochrome Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #030304;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide scrollbars when desired */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Buttons Base */
+button {
+  font-family: var(--font-sans);
+}
+
+/* Selection */
+::selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }

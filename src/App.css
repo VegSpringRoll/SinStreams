@@ -1,18 +1,66 @@
-/* Smooth scrolling */
+/* SinStreams Core Monochrome Styles */
 html {
   scroll-behavior: smooth;
+  background-color: #030304;
 }
 
-/* Responsive base */
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
-/* Hide scrollbar for horizontal scrolls */
+/* Shimmer Animation in Pure Monochrome */
+@keyframes sin-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.mono-shimmer {
+  background: linear-gradient(90deg, #09090c 25%, #18181f 50%, #09090c 75%);
+  background-size: 200% 100%;
+  animation: sin-shimmer 1.5s ease infinite;
+}
+
+/* Glass Reflection Highlight */
+.glass-reflection {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-reflection::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+}
+
+/* Subtle Silver Pulse */
+@keyframes silver-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.4; }
+}
+
+.silver-pulse {
+  animation: silver-pulse 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+  .page-content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 76px !important;
+  }
 }
