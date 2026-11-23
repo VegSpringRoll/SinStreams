@@ -69,53 +69,57 @@ export const KNOWN_EPISODE_COUNTS = {
   20: 220,       // Naruto
   1735: 500,     // Naruto Shippuden
   269: 366,      // Bleach
-  34572: 293,    // Boruto
+  34572: 293,    // Boruto: Naruto Next Generations
   97940: 170,    // Black Clover
-  11061: 148,    // Hunter x Hunter 2011
+  11061: 148,    // Hunter x Hunter (2011)
   6702: 175,     // Fairy Tail
   20973: 131,    // Dragon Ball Super
   813: 291,      // Dragon Ball Z
   918: 201,      // Gintama
+  527: 276,      // Pokemon
+  48: 224,       // Yu-Gi-Oh! Duel Monsters
 };
 
 export function resolveEpisodeCount(item) {
   if (!item) return 12;
 
-  // 1. Explicit count if already resolved and large
-  if (typeof item.episodes === 'number' && item.episodes > 12) {
-    return item.episodes;
-  }
-
-  // 2. Airing schedule if AniList provides upcoming episode number
-  if (item.nextAiringEpisode?.episode && item.nextAiringEpisode.episode > 1) {
-    return item.nextAiringEpisode.episode - 1;
-  }
-
-  // 3. Known ID matches (AniList ID or MAL ID)
+  // 1. Check known canonical broadcast episode counts by AniList ID or MAL ID first
   const aniId = Number(item.anilist_id || item.id || item._id);
   const malId = Number(item.mal_id || item.idMal);
-  if (KNOWN_EPISODE_COUNTS[aniId]) return KNOWN_EPISODE_COUNTS[aniId];
+  if (aniId && KNOWN_EPISODE_COUNTS[aniId]) return KNOWN_EPISODE_COUNTS[aniId];
   if (malId && KNOWN_EPISODE_COUNTS[malId]) return KNOWN_EPISODE_COUNTS[malId];
 
-  // 4. Title-based match for legendary ongoing anime
+  // 2. Title-based match for legendary ongoing/broadcast anime
   const title = (
-    item.title?.english || item.title?.romaji || item.title?.userPreferred || item.title || ''
+    item.title?.english || item.title?.romaji || item.title?.userPreferred || (typeof item.title === 'string' ? item.title : '')
   ).toLowerCase();
 
   if (title.includes('one piece')) return 1122;
   if (title.includes('detective conan') || title.includes('case closed')) return 1145;
   if (title.includes('naruto shippuden')) return 500;
+  if (title.includes('naruto') && !title.includes('shippuden') && !title.includes('boruto')) return 220;
   if (title.includes('boruto')) return 293;
   if (title.includes('black clover')) return 170;
-  if (title.includes('bleach') && !title.includes('thousand-year')) return 366;
+  if (title.includes('hunter x hunter') || title.includes('hunter × hunter')) return 148;
+  if (title.includes('fairy tail')) return 175;
+  if (title.includes('dragon ball super')) return 131;
+  if (title.includes('dragon ball z')) return 291;
+  if (title.includes('gintama')) return 201;
+  if (title.includes('bleach') && !title.includes('thousand-year') && !title.includes('tybw')) return 366;
 
-  // 5. Existing count if valid
+  // 3. Airing schedule if AniList provides upcoming episode number:
+  // (nextAiringEpisode.episode - 1) is EXACTLY the count of episodes released so far!
+  if (item.nextAiringEpisode?.episode && item.nextAiringEpisode.episode > 1) {
+    return item.nextAiringEpisode.episode - 1;
+  }
+
+  // 4. Finished anime or canonical count provided directly
   if (typeof item.episodes === 'number' && item.episodes > 0) {
     return item.episodes;
   }
 
-  // 6. Default for ongoing seasonal vs finished
-  if (item.status === 'RELEASING') return 24;
+  // 5. Default fallback for ongoing seasonal vs finished
+  if (item.status === 'RELEASING' || item.status === 'Currently Airing') return 24;
   return 12;
 }
 
@@ -417,18 +421,7 @@ export async function getAnimeDetails(id) {
         image: c.image?.medium,
       })) || [];
       formatted.nextAiringEpisode = res.Media.nextAiringEpisode || null;
-
-      if ((!formatted.episodes || formatted.episodes <= 12) && res.Media.idMal) {
-        try {
-          const epRes = await axios.get(`${JIKAN_URL}/anime/${res.Media.idMal}/episodes`, { timeout: 3500 });
-          if (epRes.data?.pagination?.items?.total) {
-            formatted.episodes = epRes.data.pagination.items.total;
-          }
-        } catch {
-          // fallback to resolveEpisodeCount
-        }
-      }
-      formatted.episodes = resolveEpisodeCount(formatted);
+      formatted.episodes = resolveEpisodeCount({ ...formatted, ...res.Media });
 
       setCache(cacheKey, formatted);
       return formatted;
@@ -442,16 +435,6 @@ export async function getAnimeDetails(id) {
     const { data } = await axios.get(`${JIKAN_URL}/anime/${numericId}/full`);
     if (data?.data) {
       const formatted = formatJikanItem(data.data);
-      if ((!formatted.episodes || formatted.episodes <= 12) && data.data.mal_id) {
-        try {
-          const epRes = await axios.get(`${JIKAN_URL}/anime/${data.data.mal_id}/episodes`, { timeout: 3500 });
-          if (epRes.data?.pagination?.items?.total) {
-            formatted.episodes = epRes.data.pagination.items.total;
-          }
-        } catch {
-          // fallback
-        }
-      }
       formatted.episodes = resolveEpisodeCount(formatted);
 
       setCache(cacheKey, formatted);

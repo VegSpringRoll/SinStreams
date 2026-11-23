@@ -32,8 +32,8 @@ const ANIME_SERVERS = [
   {
     id: 'makima',
     name: 'Makima',
-    subUrl: (ani, mal, ep) => `https://anyembed.se/e/${ani || mal}/${ep}?lang=sub&autoplay=1`,
-    dubUrl: (ani, mal, ep) => `https://anyembed.se/e/${ani || mal}/${ep}?lang=dub&autoplay=1`,
+    subUrl: (ani, mal, ep) => `https://aniembed.se/e/${ani || mal}/${ep}?lang=sub`,
+    dubUrl: (ani, mal, ep) => `https://aniembed.se/e/${ani || mal}/${ep}?lang=dub`,
   },
 ];
 
@@ -476,9 +476,9 @@ export default function Watch() {
   const currentEpisodeName = episodes.find(ep => ep.episode_number === currentEpisode)?.name || `Episode ${currentEpisode}`;
 
   return (
-    <div className="page-content" style={styles.container}>
+    <div className="page-content watch-page-root" style={styles.container}>
       {/* Back Button */}
-      <div style={styles.topNav}>
+      <div className="anime-top-nav" style={styles.topNav}>
         <button onClick={() => navigate(-1)} style={styles.backBtn}>
           <ArrowLeft size={16} /> Return
         </button>
@@ -555,7 +555,7 @@ export default function Watch() {
               {/* Row 1: SUB SERVERS */}
               <div className="anime-server-row">
                 <span className="anime-server-badge-sub">SUB</span>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                   {ANIME_SERVERS.map(srv => {
                     const isActive = selectedAnimeServer === srv.id && animeLang === 'sub';
                     return (
@@ -578,7 +578,7 @@ export default function Watch() {
               {/* Row 2: DUB SERVERS */}
               <div className="anime-server-row">
                 <span className="anime-server-badge-dub">DUB</span>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                   {ANIME_SERVERS.map(srv => {
                     const isActive = selectedAnimeServer === srv.id && animeLang === 'dub';
                     return (
@@ -967,6 +967,13 @@ const WATCH_CSS = `
 
   @keyframes wv-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
+  .watch-page-root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
   /* Anime Beside-The-Player Theater Layout */
   .anime-theater {
     display: grid;
@@ -976,12 +983,19 @@ const WATCH_CSS = `
     max-width: 1680px;
     margin: 0 auto;
     align-items: start;
+    width: 100%;
+    box-sizing: border-box;
   }
   @media (max-width: 960px) {
     .anime-theater {
-      grid-template-columns: 1fr;
-      padding: 12px 16px 24px;
-      gap: 16px;
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      padding: 12px 14px 24px !important;
+      gap: 16px !important;
+      overflow-x: hidden !important;
     }
   }
 
@@ -990,16 +1004,21 @@ const WATCH_CSS = `
     flex-direction: column;
     gap: 14px;
     min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .anime-video-wrapper {
     width: 100%;
+    max-width: 100%;
     aspect-ratio: 16 / 9;
     background: #000000;
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    box-sizing: border-box;
   }
 
   .anime-control-bar {
@@ -1014,6 +1033,10 @@ const WATCH_CSS = `
     -webkit-backdrop-filter: blur(16px);
     flex-wrap: wrap;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .anime-servers-box {
@@ -1026,6 +1049,10 @@ const WATCH_CSS = `
     border: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .anime-server-row {
@@ -1033,6 +1060,10 @@ const WATCH_CSS = `
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .anime-server-badge-sub {
@@ -1066,10 +1097,10 @@ const WATCH_CSS = `
   }
 
   .anime-server-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 14px;
+    padding: 7px 13px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
@@ -1079,6 +1110,8 @@ const WATCH_CSS = `
     font-size: 12px;
     font-weight: 600;
     transition: all 0.18s ease;
+    white-space: nowrap;
+    box-sizing: border-box;
   }
   .anime-server-btn:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -1104,10 +1137,28 @@ const WATCH_CSS = `
     padding: 16px;
     height: 580px;
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
   @media (max-width: 960px) {
     .anime-side-panel {
-      height: 480px;
+      height: 460px;
+      padding: 14px;
+    }
+    .anime-control-bar {
+      padding: 10px 12px !important;
+    }
+    .anime-servers-box {
+      padding: 12px 12px !important;
+    }
+    .anime-server-btn {
+      padding: 6px 10px !important;
+      font-size: 11.5px !important;
+    }
+    .anime-top-nav {
+      padding: 10px 14px !important;
     }
   }
 
@@ -1153,6 +1204,8 @@ const WATCH_CSS = `
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .anime-jump-input {
@@ -1163,6 +1216,7 @@ const WATCH_CSS = `
     color: #ffffff;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 12.5px;
+    min-width: 0;
   }
   .anime-jump-input::placeholder {
     color: #71717a;
@@ -1172,8 +1226,14 @@ const WATCH_CSS = `
     display: flex;
     gap: 6px;
     overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding-bottom: 6px;
     margin-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
 
   .anime-chunk-pill {
@@ -1188,6 +1248,7 @@ const WATCH_CSS = `
     color: #a1a1aa;
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap;
   }
   .anime-chunk-pill:hover {
     background: rgba(255, 255, 255, 0.1);
@@ -1204,12 +1265,16 @@ const WATCH_CSS = `
 
   .anime-ep-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
     grid-auto-rows: 40px;
     align-content: start;
-    gap: 8px;
+    gap: 6px;
     overflow-y: auto;
     flex: 1;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding-right: 4px;
   }
 
@@ -1247,6 +1312,10 @@ const styles = {
     background: '#030304',
     minHeight: '100vh',
     paddingTop: 68,
+    width: '100%',
+    maxWidth: '100vw',
+    overflowX: 'hidden',
+    boxSizing: 'border-box',
   },
   errorPage: {
     height: '100vh',
@@ -1273,6 +1342,10 @@ const styles = {
     padding: '12px 32px',
     background: 'rgba(10, 10, 14, 0.95)',
     borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+    width: '100%',
+    maxWidth: 1680,
+    margin: '0 auto',
+    boxSizing: 'border-box',
   },
   backBtn: {
     display: 'flex',

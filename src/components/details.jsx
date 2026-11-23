@@ -447,6 +447,9 @@ export default function Details() {
                 {media.seasons && (
                   <span className="det-chip">{media.seasons} Season{media.seasons > 1 ? 's' : ''} • {media.episodes} Episodes</span>
                 )}
+                {media.type === 'anime' && media.episodes && (
+                  <span className="det-chip"><Tv size={13} /> {media.episodes} Episodes</span>
+                )}
               </div>
 
               <div style={{
