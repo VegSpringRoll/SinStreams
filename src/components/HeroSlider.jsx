@@ -129,8 +129,8 @@ export default function HeroSlider({
 
   // Handle Watch - Navigate to Details page
   const handleWatch = () => {
-    const mediaId = slide._id || slide.imdb_id;
-    let mediaType = slide.type;
+    const mediaId = slide._id || slide.imdb_id || slide.id || slide.anilist_id;
+    let mediaType = slide.type || 'movie';
     if (mediaType === 'series') mediaType = 'tv';
     navigate(`/details/${mediaType}/${mediaId}`);
   };
@@ -205,7 +205,7 @@ export default function HeroSlider({
       >
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
-            key={slide._id}
+            key={slide._id || slide.id || current}
             custom={direction}
             variants={variants}
             initial="enter"
@@ -214,8 +214,8 @@ export default function HeroSlider({
             transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
             style={{
               position: "absolute", inset: 0,
-              backgroundImage: imgLoaded[slide._id]
-                ? `url(${getBackdrop(slide.images?.fanart || slide.images?.poster, isMobile)})`
+              backgroundImage: (imgLoaded[slide._id || slide.id] || slide.images?.fanart || slide.images?.backdrop || slide.bannerImage || slide.coverImage?.extraLarge)
+                ? `url(${getBackdrop(slide.images?.fanart || slide.images?.backdrop || slide.bannerImage || slide.images?.poster || slide.coverImage?.extraLarge, isMobile)})`
                 : "none",
               backgroundSize: "cover",
               backgroundPosition: "center top",
@@ -223,10 +223,10 @@ export default function HeroSlider({
             }}
           >
             <img
-              src={getBackdrop(slide.images?.fanart || slide.images?.poster, isMobile)}
+              src={getBackdrop(slide.images?.fanart || slide.images?.backdrop || slide.bannerImage || slide.images?.poster || slide.coverImage?.extraLarge, isMobile)}
               alt=""
               style={{ display: "none" }}
-              onLoad={() => setImgLoaded(p => ({ ...p, [slide._id]: true }))}
+              onLoad={() => setImgLoaded(p => ({ ...p, [slide._id || slide.id]: true }))}
             />
             {/* Obsidian pure monochrome dark vignettes */}
             <div style={{
@@ -253,7 +253,7 @@ export default function HeroSlider({
         }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
-              key={slide._id + "_content"}
+              key={(slide._id || slide.id || current) + "_content"}
               custom={direction}
               initial={{ opacity: 0, x: direction > 0 ? 35 : -35 }}
               animate={{ opacity: 1, x: 0 }}
@@ -410,9 +410,10 @@ export default function HeroSlider({
           }}>
             {slides.map((s, i) => {
               const isActive = i === current;
+              const thumbImg = s.images?.poster || s.images?.fanart || s.coverImage?.large || s.bannerImage;
               return (
                 <motion.div
-                  key={s._id}
+                  key={s._id || s.id || i}
                   onClick={() => goTo(i, i > current ? 1 : -1)}
                   animate={{ opacity: isActive ? 1 : 0.45, scale: isActive ? 1 : 0.92 }}
                   transition={{ duration: 0.25 }}
@@ -423,12 +424,17 @@ export default function HeroSlider({
                     background: "#0e0e12", flexShrink: 0,
                   }}
                 >
-                  <img
-                    src={s.images?.poster || s.images?.fanart}
-                    alt={s.title}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                    onError={e => { e.target.style.display = "none"; }}
-                  />
+                  {thumbImg ? (
+                    <img
+                      src={thumbImg}
+                      alt={s.title}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      loading="lazy"
+                      onError={e => { e.target.style.display = "none"; }}
+                    />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", background: "#16161d" }} />
+                  )}
                 </motion.div>
               );
             })}
