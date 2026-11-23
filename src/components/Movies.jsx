@@ -7,25 +7,20 @@ import {
   Heart, Drama, Flame, Sparkles, Compass, Shuffle
 } from 'lucide-react';
 
-const ACCENT      = '#e8b84b';
-const ACCENT_DIM  = 'rgba(232,184,75,0.1)';
-
-// tmdbId is TMDB's official genre id — used to pull a full, dedicated list
-// for that genre from the backend, instead of filtering the small trending pool.
 const FEATURED_GENRES = [
-  { name: 'Trending Now',   icon: TrendingUp, gradient: 'linear-gradient(135deg, #e8b84b, #e05fa0)' },
-  { name: 'Action',         icon: Zap,        gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
-  { name: 'Comedy',         icon: Laugh,      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Science Fiction',icon: Rocket,     gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
-  { name: 'Horror',         icon: Ghost,      gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
-  { name: 'Romance',        icon: Heart,      gradient: 'linear-gradient(135deg, #ec407a, #c2185b)', tmdbId: 10749 },
-  { name: 'Drama',          icon: Drama,      gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
-  { name: 'Thriller',       icon: Flame,      gradient: 'linear-gradient(135deg, #26a69a, #00695c)', tmdbId: 53 },
-  { name: 'Animation',      icon: Sparkles,   gradient: 'linear-gradient(135deg, #ff7043, #e64a19)', tmdbId: 16 },
-  { name: 'Adventure',      icon: Compass,    gradient: 'linear-gradient(135deg, #66bb6a, #2e7d32)', tmdbId: 12 },
+  { name: 'Trending Now',   icon: TrendingUp },
+  { name: 'Action',         icon: Zap,        tmdbId: 28 },
+  { name: 'Comedy',         icon: Laugh,      tmdbId: 35 },
+  { name: 'Science Fiction',icon: Rocket,     tmdbId: 878 },
+  { name: 'Horror',         icon: Ghost,      tmdbId: 27 },
+  { name: 'Romance',        icon: Heart,      tmdbId: 10749 },
+  { name: 'Drama',          icon: Drama,      tmdbId: 18 },
+  { name: 'Thriller',       icon: Flame,      tmdbId: 53 },
+  { name: 'Animation',      icon: Sparkles,   tmdbId: 16 },
+  { name: 'Adventure',      icon: Compass,    tmdbId: 12 },
 ];
 
-// ── Randomizer — "Surprise Me" hero section with a slot-machine style shuffle ──
+// ── Randomizer — "Surprise Me" hero section in Pure Monochrome Glassmorphism ──
 function Randomizer({ pool, isMobile, navigate }) {
   const [previewItem, setPreviewItem] = useState(null);
   const [shuffling, setShuffling] = useState(false);
@@ -55,7 +50,6 @@ function Randomizer({ pool, isMobile, navigate }) {
       if (ticks >= maxTicks) {
         clearInterval(intervalRef.current);
         setShuffling(false);
-        // Adjust this path if your router uses a different details route.
         navigate(`/details/movie/${pick._id}`);
       }
     }, 85);
@@ -71,18 +65,18 @@ function Randomizer({ pool, isMobile, navigate }) {
             className={shuffling ? 'mv-shuffling' : ''}
           />
         ) : (
-          <div className="mv-randomizer-placeholder"><Film size={26} /></div>
+          <div className="mv-randomizer-placeholder"><Film size={26} color="#ffffff" /></div>
         )}
       </div>
 
       <div className="mv-randomizer-info">
         <div className="mv-randomizer-eyebrow">
-          <Shuffle size={13} />
-          <span>Can't decide?</span>
+          <Shuffle size={13} color="#ffffff" />
+          <span>Curator's Choice</span>
         </div>
         <h2>Surprise Me</h2>
         {!isMobile && (
-          <p>{previewItem ? previewItem.title : 'Let us pick something great for you to watch.'}</p>
+          <p>{previewItem ? previewItem.title : 'Let us select a cinematic masterpiece for you.'}</p>
         )}
         <button
           onClick={handleRandomize}
@@ -90,15 +84,15 @@ function Randomizer({ pool, isMobile, navigate }) {
           className="mv-randomizer-btn"
         >
           <Shuffle size={16} className={shuffling ? 'mv-spin' : ''} />
-          {shuffling ? 'Shuffling…' : 'Randomize'}
+          {shuffling ? 'Consulting archives…' : 'Randomize Title'}
         </button>
       </div>
     </div>
   );
 }
 
-// ── MovieRow — Netflix-style horizontal row with hover-zoom + scroll arrows ───
-function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onSeeAll, isMobile }) {
+// ── MovieRow — Pure Monochrome Horizontal Row ──
+function MovieRow({ title, movies: rowMovies, icon: Icon, isFirst, onSeeAll, isMobile }) {
   const trackRef = useRef(null);
 
   const scrollByAmount = (dir) => {
@@ -109,7 +103,7 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
   };
 
   return (
-    <div className="mv-row" style={{ marginBottom: isFirst ? 30 : 38 }}>
+    <div className="mv-row" style={{ marginBottom: isFirst ? 28 : 36 }}>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: isMobile ? '0 16px' : '0 32px', marginBottom: 12,
@@ -117,28 +111,30 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {Icon && (
             <div style={{
-              width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-              background: gradient || ACCENT_DIM,
+              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             }}>
-              <Icon size={13} color="#fff" />
+              <Icon size={14} color="#ffffff" />
             </div>
           )}
           <h2 style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 15 : 17,
-            fontWeight: 700, color: '#e8eaf0', margin: 0, letterSpacing: '-0.2px',
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? 15 : 17,
+            fontWeight: 600, color: '#ffffff', margin: 0, letterSpacing: '-0.2px',
           }}>{title}</h2>
         </div>
         <button
           onClick={() => onSeeAll(title)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 3,
+            display: 'flex', alignItems: 'center', gap: 4,
             background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 12,
-            color: '#6878a0', fontWeight: 500, padding: 0,
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12.5,
+            color: '#a1a1aa', fontWeight: 500, padding: 0, transition: 'color 0.2s ease',
           }}
-          onMouseEnter={e => e.currentTarget.style.color = ACCENT}
-          onMouseLeave={e => e.currentTarget.style.color = '#6878a0'}
+          onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
+          onMouseLeave={e => e.currentTarget.style.color = '#a1a1aa'}
         >
           See All <ChevronRight size={13} />
         </button>
@@ -151,15 +147,15 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
             className="mv-arrow mv-arrow-l"
             onClick={() => scrollByAmount(-1)}
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={22} color="#ffffff" />
           </button>
         )}
 
         <div
           ref={trackRef}
           style={{
-            display: 'flex', gap: isMobile ? 10 : 12, overflowX: 'auto',
-            padding: isMobile ? '4px 16px 10px' : '4px 32px 12px',
+            display: 'flex', gap: isMobile ? 10 : 14, overflowX: 'auto',
+            padding: isMobile ? '4px 16px 10px' : '4px 32px 14px',
             scrollbarWidth: 'none', scrollSnapType: 'x mandatory',
           }}
         >
@@ -176,7 +172,7 @@ function MovieRow({ title, movies: rowMovies, gradient, icon: Icon, isFirst, onS
             className="mv-arrow mv-arrow-r"
             onClick={() => scrollByAmount(1)}
           >
-            <ChevronRight size={22} />
+            <ChevronRight size={22} color="#ffffff" />
           </button>
         )}
       </div>
@@ -206,12 +202,10 @@ export default function Movies() {
     let cancelled = false;
 
     const loadAll = async () => {
-      // Trending row + total count
       const trendingPromise = getMovies().then(data =>
         Array.isArray(data) ? data.filter(m => !m.type || m.type === 'movie') : []
       );
 
-      // Each genre gets its own dedicated pool, fetched in parallel
       const genreEntries = FEATURED_GENRES.filter(g => g.tmdbId);
       const genrePromises = genreEntries.map(g =>
         getMoviesByGenre(g.tmdbId).then(data => [g.name, Array.isArray(data) ? data : []])
@@ -248,7 +242,6 @@ export default function Movies() {
     ...genrePools,
   }), [trendingSorted, genrePools]);
 
-  // Deduplicated pool of every movie loaded across all rows, used by the randomizer.
   const allMoviesPool = useMemo(() => {
     const map = new Map();
     [...trendingSorted, ...Object.values(genrePools).flat()].forEach(m => {
@@ -262,7 +255,7 @@ export default function Movies() {
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) return (
-    <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
+    <div style={{ background: '#030304', minHeight: '100vh', paddingTop: 80 }}>
       <style>{CSS}</style>
       <div style={{ padding: isMobile ? '24px 16px 0' : '32px 32px 0' }}>
         <div className="mv-sk" style={{ width: 180, height: 36, borderRadius: 8, marginBottom: 36 }} />
@@ -285,22 +278,26 @@ export default function Movies() {
     const displayMovies = genreMovies[activeGenre] || [];
 
     return (
-      <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
+      <div style={{ background: '#030304', minHeight: '100vh', paddingTop: 80 }}>
         <style>{CSS}</style>
         <div style={{ padding: isMobile ? '24px 16px 0' : '32px 32px 0' }}>
           <button onClick={handleBack} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 14,
-            color: '#6878a0', marginBottom: 24, padding: 0,
-          }}>
+            fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14,
+            color: '#a1a1aa', marginBottom: 24, padding: 0,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
+          onMouseLeave={e => e.currentTarget.style.color = '#a1a1aa'}
+          >
             <ChevronLeft size={16} /> Back to Movies
           </button>
-          <h1 style={{ fontFamily: "'Playfair Display', serif",
+          <h1 style={{ fontFamily: "'Cinzel', 'Playfair Display', serif",
             fontSize: 'clamp(26px, 3vw, 42px)', fontWeight: 900,
-            color: '#e8eaf0', margin: '0 0 6px' }}>{activeGenre}</h1>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#3a4560', fontSize: 13, marginBottom: 28 }}>
-            {displayMovies.length} movies
+            color: '#ffffff', margin: '0 0 6px' }}>{activeGenre}</h1>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#71717a', fontSize: 13, marginBottom: 28 }}>
+            {displayMovies.length} titles
           </p>
           <div style={gridStyle}>
             {displayMovies.map((movie, i) => (
@@ -314,19 +311,22 @@ export default function Movies() {
 
   // ── Main Layout ───────────────────────────────────────────────────────────
   return (
-    <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 80 }}>
+    <div style={{ background: '#030304', minHeight: '100vh', paddingTop: 70 }}>
       <style>{CSS}</style>
 
       {/* Header */}
       <div style={{
-        padding: isMobile ? '24px 16px 20px' : '36px 32px 28px',
-        borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: 8,
+        padding: isMobile ? '24px 16px 18px' : '36px 32px 24px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: 8,
       }}>
         <h1 style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: isMobile ? 34 : 'clamp(32px, 4vw, 48px)', fontWeight: 900,
-          color: '#e8eaf0', margin: 0, letterSpacing: '-1px',
+          fontFamily: "'Cinzel', 'Playfair Display', serif",
+          fontSize: isMobile ? 32 : 'clamp(32px, 4vw, 48px)', fontWeight: 900,
+          color: '#ffffff', margin: 0, letterSpacing: '-0.5px',
         }}>Movies</h1>
+        <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: "#71717a", marginTop: 4 }}>
+          Cinematic masterworks curated in pure monochrome
+        </p>
       </div>
 
       {/* Randomizer */}
@@ -342,7 +342,6 @@ export default function Movies() {
               key={genre.name}
               title={genre.name}
               movies={rowMovies}
-              gradient={genre.gradient}
               icon={genre.icon}
               isFirst={index === 0}
               onSeeAll={handleSeeAll}
@@ -362,22 +361,20 @@ const gridStyle = {
 };
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
   @keyframes mv-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
   .mv-sk {
-    background: linear-gradient(90deg, #0d1420 25%, #1a2235 50%, #0d1420 75%);
+    background: linear-gradient(90deg, #09090d 25%, #181822 50%, #09090d 75%);
     background-size: 200% 100%;
     animation: mv-shimmer 1.4s ease infinite;
   }
 
-  /* Netflix-style hover zoom on cards (desktop only, mouse-capable) */
   @media (hover: hover) and (pointer: fine) {
     .mv-card {
       transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
       transform-origin: center center;
     }
     .mv-card:hover {
-      transform: scale(1.08);
+      transform: scale(1.06);
       z-index: 5;
       position: relative;
     }
@@ -385,71 +382,76 @@ const CSS = `
 
   /* Row scroll arrows */
   .mv-arrow {
-    position: absolute; top: 0; bottom: 12px;
-    width: 44px; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(90deg, #080c14 10%, transparent);
-    border: none; color: #e8eaf0; cursor: pointer;
+    position: absolute; top: 0; bottom: 14px;
+    width: 48px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(90deg, rgba(3,3,4,0.95) 20%, transparent);
+    border: none; color: #ffffff; cursor: pointer;
     opacity: 0; transition: opacity 0.2s ease;
     z-index: 6;
   }
-  .mv-arrow-r { right: 0; background: linear-gradient(270deg, #080c14 10%, transparent); }
+  .mv-arrow-r { right: 0; background: linear-gradient(270deg, rgba(3,3,4,0.95) 20%, transparent); }
   .mv-arrow-l { left: 0; }
   .mv-row:hover .mv-arrow { opacity: 1; }
-
-  ::-webkit-scrollbar { height: 3px; width: 3px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #1a2235; border-radius: 4px; }
 
   /* ── Randomizer ── */
   .mv-randomizer {
     display: flex;
     align-items: center;
     gap: 24px;
-    margin: 8px 32px 40px;
-    padding: 20px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(232,184,75,0.09), rgba(224,95,160,0.06));
-    border: 1px solid rgba(232,184,75,0.18);
+    margin: 16px 32px 36px;
+    padding: 24px;
+    border-radius: 18px;
+    background: rgba(16, 16, 22, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
   .mv-randomizer-preview {
-    width: 90px; height: 130px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
-    background: rgba(255,255,255,0.04);
+    width: 96px; height: 140px; border-radius: 12px; overflow: hidden; flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   }
   .mv-randomizer-preview img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.08s ease; }
-  .mv-randomizer-placeholder { color: #3a4560; }
+  .mv-randomizer-placeholder { color: #a1a1aa; }
   .mv-randomizer-info { flex: 1; min-width: 0; }
   .mv-randomizer-eyebrow {
-    display: flex; align-items: center; gap: 6px;
-    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
-    color: #e8b84b; text-transform: uppercase; letter-spacing: 0.1em;
-    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 7px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600;
+    color: #ffffff; text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 5px;
   }
   .mv-randomizer-info h2 {
-    font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900;
-    color: #e8eaf0; margin: 0 0 4px;
+    font-family: 'Cinzel', serif; font-size: 24px; font-weight: 900;
+    color: #ffffff; margin: 0 0 6px;
   }
   .mv-randomizer-info p {
-    font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6878a0;
-    margin: 0 0 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; color: #a1a1aa;
+    margin: 0 0 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .mv-randomizer-btn {
-    display: flex; align-items: center; gap: 8px;
-    background: #e8b84b; color: #080c14; border: none; border-radius: 8px;
-    padding: 11px 22px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700;
-    cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease;
+    display: flex; align-items: center; gap: 9px;
+    background: #ffffff; color: #030304; border: none; border-radius: 10px;
+    padding: 12px 24px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s ease;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
   }
-  .mv-randomizer-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .mv-randomizer-btn:hover:not(:disabled) { 
+    transform: translateY(-2px); 
+    box-shadow: 0 0 28px rgba(255, 255, 255, 0.45); 
+  }
   .mv-randomizer-btn:disabled { opacity: 0.5; cursor: default; }
   @keyframes mv-spin { to { transform: rotate(360deg); } }
   .mv-spin { animation: mv-spin 0.6s linear infinite; }
-  .mv-shuffling { opacity: 0.55; }
+  .mv-shuffling { opacity: 0.5; }
 
   @media (max-width: 768px) {
-    .mv-randomizer { margin: 4px 16px 28px; padding: 16px; gap: 16px; }
-    .mv-randomizer-preview { width: 66px; height: 96px; }
-    .mv-randomizer-info h2 { font-size: 18px; }
-    .mv-randomizer-btn { padding: 10px 16px; font-size: 13px; width: 100%; justify-content: center; }
+    .mv-randomizer { margin: 8px 16px 28px; padding: 18px; gap: 16px; }
+    .mv-randomizer-preview { width: 72px; height: 105px; }
+    .mv-randomizer-info h2 { font-size: 19px; }
+    .mv-randomizer-btn { padding: 11px 18px; font-size: 13.5px; width: 100%; justify-content: center; }
   }
 
   @media (max-width: 420px) {

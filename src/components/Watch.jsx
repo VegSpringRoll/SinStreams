@@ -1,23 +1,58 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import MediaCard from "../components/MediaCard";
-import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize, Minimize } from "lucide-react";
+import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize, Minimize, Sparkles, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { getMovies, getShows } from "../../services/mediaService";
 import { saveLastWatched } from "../../services/Watchhistory";
+import { getAnimeDetails, getPopularAnime, resolveEpisodeCount } from "../../services/animeService";
 
 const BACKEND_URL = import.meta.env.PROD ? "/api" : "http://localhost:5000/api";
 const TMDB_API_KEY = '8ade991ea509eefe3cca2142132d753a';
 
+const ANIME_SERVERS = [
+  {
+    id: 'ichigo',
+    name: 'Ichigo',
+    subUrl: (ani, mal, ep) => ani ? `https://megaplay.buzz/stream/ani/${ani}/${ep}/sub` : `https://megaplay.buzz/stream/mal/${mal}/${ep}/sub`,
+    dubUrl: (ani, mal, ep) => ani ? `https://megaplay.buzz/stream/ani/${ani}/${ep}/dub` : `https://megaplay.buzz/stream/mal/${mal}/${ep}/dub`,
+  },
+  {
+    id: 'yukisuo',
+    name: 'Yuki Suo',
+    subUrl: (ani, mal, ep) => `https://anixo.buzz/embed/ani/${ani || mal}/${ep}?lang=sub`,
+    dubUrl: (ani, mal, ep) => `https://anixo.buzz/embed/ani/${ani || mal}/${ep}?lang=dub`,
+  },
+  {
+    id: 'hinata',
+    name: 'Hinata',
+    subUrl: (ani, mal, ep) => `https://vidy.st/anime/${ani || mal}/${ep}?color=ffffff`,
+    dubUrl: (ani, mal, ep) => `https://vidy.st/anime/${ani || mal}/${ep}?color=ffffff&dub=1`,
+  },
+  {
+    id: 'makima',
+    name: 'Makima',
+    subUrl: (ani, mal, ep) => `https://anyembed.se/e/${ani || mal}/${ep}?lang=sub&autoplay=1`,
+    dubUrl: (ani, mal, ep) => `https://anyembed.se/e/${ani || mal}/${ep}?lang=dub&autoplay=1`,
+  },
+];
+
+const CHUNK_SIZE = 100;
+
 export default function Watch() {
   const location = useLocation();
   const navigate = useNavigate();
-  const media = location.state?.media;
+  const { type: routeType, id: routeId } = useParams();
+  const [media, setMedia] = useState(location.state?.media || null);
   const autoPlay = location.state?.autoPlay || false;
   // Optional resume point passed from a "Continue Watching" card
   const startSeason = location.state?.startSeason || null;
   const startEpisode = location.state?.startEpisode || null;
 
+  const [animeLang, setAnimeLang] = useState('sub'); // 'sub' | 'dub'
+  const [selectedAnimeServer, setSelectedAnimeServer] = useState('ichigo');
+  const [activeChunkIndex, setActiveChunkIndex] = useState(0);
+  const [episodeSearch, setEpisodeSearch] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [loadingRecs, setLoadingRecs] = useState(true);
   const [isMobile, setIsMobile] = useState(
@@ -35,6 +70,50 @@ export default function Watch() {
   const videoWrapperRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Direct fetch fallback if user navigates / reloads directly
+  useEffect(() => {
+    if (media) return;
+    if (!routeId) return;
+
+    const resolveMedia = async () => {
+      try {
+        if (routeType === 'anime') {
+          const animeData = await getAnimeDetails(routeId);
+          if (animeData) setMedia(animeData);
+        } else if (routeType === 'tv' || routeType === 'series') {
+          const { data } = await axios.get(`https://api.themoviedb.org/3/tv/${routeId}`, {
+            params: { api_key: TMDB_API_KEY, append_to_response: 'external_ids' }
+          });
+          setMedia({
+            _id: String(data.id),
+            imdb_id: data.external_ids?.imdb_id,
+            title: data.name,
+            type: 'series',
+            year: data.first_air_date?.substring(0, 4),
+            rating: { percentage: Math.round(data.vote_average * 10) },
+            images: { poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null },
+          });
+        } else {
+          const { data } = await axios.get(`https://api.themoviedb.org/3/movie/${routeId}`, {
+            params: { api_key: TMDB_API_KEY, append_to_response: 'external_ids' }
+          });
+          setMedia({
+            _id: String(data.id),
+            imdb_id: data.imdb_id || data.external_ids?.imdb_id,
+            title: data.title,
+            type: 'movie',
+            year: data.release_date?.substring(0, 4),
+            rating: { percentage: Math.round(data.vote_average * 10) },
+            images: { poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null },
+          });
+        }
+      } catch (err) {
+        console.warn("Could not resolve media for watch page:", err.message);
+      }
+    };
+
+    resolveMedia();
+  }, [media, routeType, routeId]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -57,7 +136,8 @@ export default function Watch() {
   const [totalEpisodes, setTotalEpisodes] = useState(0);
   const [showDetails, setShowDetails] = useState(null);
 
-  const isSeries = media?.type === 'series' || media?.type === 'tv';
+  const isAnime = media?.type === 'anime' || routeType === 'anime';
+  const isSeries = !isAnime && (media?.type === 'series' || media?.type === 'tv' || routeType === 'series' || routeType === 'tv');
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -69,7 +149,9 @@ export default function Watch() {
     window.scrollTo(0, 0);
 
     if (media) {
-      if (isSeries) {
+      if (isAnime) {
+        setupAnimeEpisodes();
+      } else if (isSeries) {
         fetchShowDetails();
       } else {
         fetchStreamSources(media.imdb_id, 1, 1);
@@ -77,21 +159,88 @@ export default function Watch() {
       fetchRecommendations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [media]);
+  }, [media, isAnime]);
 
-  // Keep "Continue Watching" up to date with whatever's actually on screen.
+  const setupAnimeEpisodes = async () => {
+    let count = resolveEpisodeCount(media);
+    const animeId = media?.anilist_id || media?._id || media?.id;
+
+    if ((!count || count <= 12) && animeId) {
+      try {
+        const full = await getAnimeDetails(animeId);
+        if (full?.episodes && full.episodes > count) {
+          count = full.episodes;
+          setMedia(prev => ({ ...prev, episodes: count }));
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    const epList = Array.from({ length: count }, (_, i) => ({
+      episode_number: i + 1,
+      name: `Episode ${i + 1}`,
+    }));
+    setEpisodes(epList);
+    setTotalEpisodes(count);
+
+    const targetEp = startEpisode && startEpisode <= count ? startEpisode : 1;
+    setCurrentEpisode(targetEp);
+    const chunkIdx = Math.floor((targetEp - 1) / CHUNK_SIZE);
+    setActiveChunkIndex(chunkIdx);
+    fetchStreamSources(null, 1, targetEp);
+  };
+
+  const animeChunks = useMemo(() => {
+    if (!totalEpisodes) return [];
+    const count = Math.ceil(totalEpisodes / CHUNK_SIZE) || 1;
+    return Array.from({ length: count }, (_, idx) => {
+      const start = idx * CHUNK_SIZE + 1;
+      const end = Math.min((idx + 1) * CHUNK_SIZE, totalEpisodes);
+      return { index: idx, label: `${start} - ${end}`, start, end };
+    });
+  }, [totalEpisodes]);
+
+  const visibleAnimeEpisodes = useMemo(() => {
+    if (!episodes || episodes.length === 0) return [];
+    if (episodeSearch.trim()) {
+      const q = episodeSearch.trim().toLowerCase();
+      return episodes.filter(ep => String(ep.episode_number).includes(q) || ep.name?.toLowerCase().includes(q));
+    }
+    const chunk = animeChunks[activeChunkIndex] || animeChunks[0];
+    if (!chunk) return episodes;
+    return episodes.filter(ep => ep.episode_number >= chunk.start && ep.episode_number <= chunk.end);
+  }, [episodes, animeChunks, activeChunkIndex, episodeSearch]);
+
+  const handleSelectAnimeServer = (serverId, lang) => {
+    setSelectedAnimeServer(serverId);
+    setAnimeLang(lang);
+    const anilistId = media?.anilist_id || media?._id || media?.id;
+    const malId = media?.mal_id;
+    const srv = ANIME_SERVERS.find(s => s.id === serverId) || ANIME_SERVERS[0];
+    const targetUrl = lang === 'dub'
+      ? srv.dubUrl(anilistId, malId, currentEpisode)
+      : srv.subUrl(anilistId, malId, currentEpisode);
+
+    setSources([{ name: srv.name, url: targetUrl }]);
+    setCurrentSource(0);
+  };
+
+  // Keep "Continue Watching" up to date
   useEffect(() => {
     if (!media) return;
-    if (isSeries) {
+    if (isAnime) {
+      saveLastWatched(media, { episode: currentEpisode, episodeName: `Episode ${currentEpisode}` });
+    } else if (isSeries) {
       if (!currentSeason || !currentEpisode) return;
       const epName = episodes.find(e => e.episode_number === currentEpisode)?.name || null;
       saveLastWatched(media, { season: currentSeason, episode: currentEpisode, episodeName: epName });
     } else {
       saveLastWatched(media, {});
     }
-  }, [media, isSeries, currentSeason, currentEpisode, episodes]);
+  }, [media, isAnime, isSeries, currentSeason, currentEpisode, episodes]);
 
-  // Fetch show details for series (seasons list + resolves a resume point if provided)
+  // Fetch show details for series
   const fetchShowDetails = async () => {
     try {
       const tmdbId = media._id || media.id;
@@ -134,7 +283,6 @@ export default function Watch() {
     }
   };
 
-  // Fetch episodes for a season (with stills/overview/runtime for the banner list)
   const fetchEpisodesForSeason = async (seasonNum) => {
     try {
       setEpisodesLoading(true);
@@ -151,7 +299,7 @@ export default function Watch() {
         .map(ep => ({
           episode_number: ep.episode_number,
           name: ep.name || `Episode ${ep.episode_number}`,
-          overview: ep.overview || '',
+          overview: ep.overview,
           still: ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : null,
           runtime: ep.runtime || null,
         })) || [];
@@ -167,37 +315,59 @@ export default function Watch() {
     }
   };
 
-  // Handle season change
   const handleSeasonChange = async (seasonNum) => {
-    if (seasonNum === currentSeason) return;
     setCurrentSeason(seasonNum);
     setCurrentEpisode(1);
     await fetchEpisodesForSeason(seasonNum);
-    fetchStreamSources(media.imdb_id, seasonNum, 1);
+    fetchStreamSources(media?.imdb_id, seasonNum, 1);
   };
 
-  // Handle episode change
   const handleEpisodeChange = (episodeNum) => {
-    if (episodeNum === currentEpisode) return;
     setCurrentEpisode(episodeNum);
-    fetchStreamSources(media.imdb_id, currentSeason, episodeNum);
-    // Scroll to the player so the switch feels immediate, especially on mobile
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isAnime) {
+      const chunkIdx = Math.floor((episodeNum - 1) / CHUNK_SIZE);
+      setActiveChunkIndex(chunkIdx);
+      const anilistId = media?.anilist_id || media?._id || media?.id;
+      const malId = media?.mal_id;
+      const srv = ANIME_SERVERS.find(s => s.id === selectedAnimeServer) || ANIME_SERVERS[0];
+      const targetUrl = animeLang === 'dub'
+        ? srv.dubUrl(anilistId, malId, episodeNum)
+        : srv.subUrl(anilistId, malId, episodeNum);
+      setSources([{ name: srv.name, url: targetUrl }]);
+      setCurrentSource(0);
+    } else {
+      fetchStreamSources(media?.imdb_id, currentSeason, episodeNum);
+    }
   };
 
-  // Fetch streaming sources
+  // Fetch video streaming sources
   const fetchStreamSources = async (imdbId, season = 1, episode = 1) => {
     try {
       setLoadingSources(true);
-      setSourceErrors({});
       setUseDirect(false);
+      setDirectUrl(null);
 
-      const seriesFlag = media.type === 'series' || media.type === 'tv';
-      const tmdbId = media._id || media.id;
-      const anyId = imdbId || tmdbId;
-      const type = seriesFlag ? 'tv' : 'movie';
+      // Handle Anime sources (Ichigo, Yuki Suo, Hinata, Makima)
+      if (isAnime) {
+        const anilistId = media?.anilist_id || media?._id || media?.id;
+        const malId = media?.mal_id;
+        const ep = episode || currentEpisode || 1;
+        const srv = ANIME_SERVERS.find(s => s.id === selectedAnimeServer) || ANIME_SERVERS[0];
+        const targetUrl = animeLang === 'dub'
+          ? srv.dubUrl(anilistId, malId, ep)
+          : srv.subUrl(anilistId, malId, ep);
 
-      // Try direct video
+        setSources([{ name: srv.name, url: targetUrl }]);
+        setCurrentSource(0);
+        setLoadingSources(false);
+        return;
+      }
+
+      const type = isSeries ? 'tv' : 'movie';
+      const tmdbId = media?._id || media?.id;
+      const anyId = tmdbId || imdbId;
+      const seriesFlag = isSeries;
+
       try {
         const { data } = await axios.get(`${BACKEND_URL}/stream/direct/${type}/${anyId}`, {
           params: { s: season, e: episode }
@@ -215,50 +385,48 @@ export default function Watch() {
 
       const sources = [];
 
-      // #1 - VIDLUX
       if (tmdbId) {
         sources.push({
-          name: 'God👑',
+          name: 'Server Alpha',
           url: seriesFlag
-            ? `https://vsembed.ru/embed/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
-            : `https://vsembed.ru/embed/movie/${tmdbId || anyId}?autoPlay=true`,
+            ? `https://vidspark.to/tv/${tmdbId || anyId}/${season}/${episode}?autoPlay=true`
+            : `https://vidspark.to/movie/${tmdbId || anyId}?autoPlay=true`,
           quality: 'HD', id: 'vidlux'
         });
       }
 
-      // #2 - VIDSRC.WTF 
       sources.push({
-        name: 'DemiGod👑',
+        name: 'Server Beta',
         url: seriesFlag
-          ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?color=e8b84b`
-          : `https://vidcore.net/movie/${tmdbId || anyId}?color=e8b84b`,
+          ? `https://vidcore.net/tv/${tmdbId || anyId}/${season}/${episode}?color=ffffff`
+          : `https://vidcore.net/movie/${tmdbId || anyId}?color=ffffff`,
         quality: 'HD', id: 'vidsrcwtf'
       });
 
       sources.push({
-        name: 'Fastest⚡',
+        name: 'Server Gamma (Fast)',
         url: seriesFlag ? `https://vidsrc.to/embed/tv/${imdbId || anyId}/${season}/${episode}` : `https://vidsrc.to/embed/movie/${imdbId || anyId}`,
         quality: 'HD', id: 'vidsrc'
       });
       sources.push({
-        name: '2embed',
+        name: 'Server Delta',
         url: seriesFlag ? `https://www.2embed.cc/embedtv/${tmdbId || anyId}&s=${season}&e=${episode}` : `https://www.2embed.cc/embed/${tmdbId || anyId}`,
         quality: 'HD', id: '2embed'
       });
       sources.push({
-        name: 'HD Elite🌟',
+        name: 'Server Epsilon (4K)',
         url: seriesFlag ? `https://player.videasy.net/tv/${tmdbId || anyId}/${season}/${episode}` 
           : `https://player.videasy.net/movie/${tmdbId || anyId}`,
         quality: 'HD/4K', id: 'vidnest'
       });
       sources.push({
-        name: 'Premium HD 🔥',
+        name: 'Server Zeta',
         url: seriesFlag ? `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}&s=${season}&e=${episode}` : `https://embed.smashystream.com/playere.php?imdb=${imdbId || anyId}`,
         quality: 'HD', id: 'smashystream'
       });
 
       if (tmdbId) {
-        sources.push({ name: 'Vid HD ✨', url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
+        sources.push({ name: 'Server Theta', url: seriesFlag ? `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}` : `https://vidlink.pro/movie/${tmdbId}`, quality: 'HD', id: 'vidlink' });
       }
 
       setSources(sources);
@@ -270,11 +438,14 @@ export default function Watch() {
     }
   };
 
-  // Fetch recommendations
   const fetchRecommendations = async () => {
     try {
       setLoadingRecs(true);
-
+      if (isAnime) {
+        const animeList = await getPopularAnime(1, 12);
+        setRecommendations(animeList.filter(a => a.id !== media?._id && a.id !== media?.id));
+        return;
+      }
       const [movies, series] = await Promise.all([
         getMovies(),
         getShows()
@@ -296,8 +467,8 @@ export default function Watch() {
   if (!media) {
     return (
       <div style={styles.errorPage}>
-        <h2 style={{ color: '#ccc', fontFamily: "'DM Sans', sans-serif" }}>Session lost or movie not found</h2>
-        <button onClick={() => navigate('/')} style={styles.homeBtn}>Go Back Home</button>
+        <h2 style={{ color: '#ffffff', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Session lost or title not found</h2>
+        <button onClick={() => navigate('/')} style={styles.homeBtn}>Return Home</button>
       </div>
     );
   }
@@ -309,166 +480,398 @@ export default function Watch() {
       {/* Back Button */}
       <div style={styles.topNav}>
         <button onClick={() => navigate(-1)} style={styles.backBtn}>
-          <ArrowLeft size={18} /> Back
+          <ArrowLeft size={16} /> Return
         </button>
       </div>
 
-      {/* Video Section */}
-      <div className="watch-video" style={styles.videoSection}>
-        {loadingSources ? (
-          <div style={styles.videoPlaceholder}>
-            <div style={styles.spinner} />
-            <p style={{ color: '#888', fontFamily: "'DM Sans', sans-serif", marginTop: 16 }}>Loading video sources...</p>
-          </div>
-        ) : (
-          <div ref={videoWrapperRef} style={{ ...styles.videoWrapper, position: 'relative' }}>
-            {useDirect && directUrl ? (
-              <video controls autoPlay style={styles.video}>
-                <source src={directUrl} type={videoType === 'm3u8' ? 'application/x-mpegURL' : 'video/mp4'} />
-              </video>
-            ) : (
-              <iframe
-                src={sources[currentSource]?.url}
-                style={styles.video}
-                allowFullScreen
-                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                title={media.title}
-              />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* CONTROLS BELOW VIDEO */}
-      <div className="controls-section" style={styles.controlsSection}>
-        {isSeries && (
-          <div className="episode-bar" style={styles.episodeBar}>
-            <div style={styles.episodeInfo}>
-              <span style={styles.episodeLabel}>Now Playing</span>
-              <span style={styles.episodeValue}>Season {currentSeason} • {currentEpisodeName}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Source Selector */}
-        {sources.length > 0 && (
-          <div style={styles.sourceBar}>
-            <span style={styles.sourceLabel}>
-              <Monitor size={16} /> Streaming Server:
-            </span>
-            <div className="source-buttons" style={styles.sourceButtons}>
-              {sources.map((source, index) => (
-                <button
-                  key={source.id}
-                  style={{
-                    ...styles.sourceBtn,
-                    ...(index === currentSource ? styles.sourceBtnActive : {}),
-                    ...(sourceErrors[index] ? { opacity: 0.4, textDecoration: 'line-through' } : {})
-                  }}
-                  onClick={() => {
-                    setSourceErrors(prev => ({ ...prev, [index]: false }));
-                    setCurrentSource(index);
-                  }}
-                >
-                  {sourceErrors[index] ? '❌ ' : ''}{source.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Episodes — season pills + playable banner list (series only) */}
-      {isSeries && (
-        <div className="watch-episodes" style={{ ...styles.episodesSection, padding: isMobile ? '24px 16px' : '32px' }}>
-          <div style={styles.episodesHeader}>
-            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? 17 : 20, margin: 0 }}>Episodes</h2>
-            {totalEpisodes > 0 && <span style={styles.episodesCount}>{totalEpisodes} episodes</span>}
-          </div>
-
-          {seasons.length > 1 && (
-            <div className="season-pills hide-scrollbar" style={styles.seasonPillRow}>
-              {seasons.map(s => (
-                <button
-                  key={s.season_number}
-                  onClick={() => handleSeasonChange(s.season_number)}
-                  style={{
-                    ...styles.seasonPill,
-                    ...(s.season_number === currentSeason ? styles.seasonPillActive : {})
-                  }}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div style={styles.episodeList}>
-            {episodesLoading ? (
-              [1,2,3].map(i => (
-                <div key={i} style={styles.episodeCard}>
-                  <div className="mv-sk" style={{ ...styles.episodeThumbWrap, background: '#1a2235' }} />
-                  <div style={{ flex: 1 }}>
-                    <div className="mv-sk" style={{ width: '60%', height: 14, borderRadius: 4, marginBottom: 8 }} />
-                    <div className="mv-sk" style={{ width: '90%', height: 12, borderRadius: 4 }} />
-                  </div>
+      {/* ANIME: Beside-the-player Theater Stage with Dedicated Episode Selector Panel */}
+      {isAnime ? (
+        <div className="anime-theater">
+          {/* Left Column: Player & Dual Server Rows (SUB & DUB) */}
+          <div className="anime-video-col">
+            <div className="anime-video-wrapper">
+              {loadingSources ? (
+                <div style={styles.videoPlaceholder}>
+                  <div style={styles.spinner} />
+                  <p style={{ color: '#a1a1aa', fontFamily: "'Plus Jakarta Sans', sans-serif", marginTop: 16 }}>Connecting video stream...</p>
                 </div>
-              ))
-            ) : episodes.length > 0 ? (
-              episodes.map(ep => {
-                const isActive = ep.episode_number === currentEpisode;
-                return (
-                  <div
-                    key={ep.episode_number}
-                    className="episode-card"
-                    onClick={() => handleEpisodeChange(ep.episode_number)}
-                    style={{
-                      ...styles.episodeCard,
-                      ...(isActive ? styles.episodeCardActive : {}),
-                    }}
-                  >
-                    <div style={styles.episodeThumbWrap}>
-                      {ep.still ? (
-                        <img src={ep.still} alt={ep.name} style={styles.episodeThumb} loading="lazy" />
-                      ) : (
-                        <div style={styles.episodeThumbFallback}>
-                          <Tv size={isMobile ? 20 : 26} color="#3a4560" />
-                        </div>
-                      )}
-                      <div style={styles.episodeNumBadge}>{ep.episode_number}</div>
-                      {!isActive && (
-                        <div className="episode-play-overlay" style={styles.episodePlayOverlay}>
-                          <Play size={18} fill="#fff" color="#fff" />
-                        </div>
-                      )}
-                      {isActive && (
-                        <div style={styles.nowPlayingBadge}>
-                          <span style={styles.nowPlayingDot} /> Playing
-                        </div>
-                      )}
-                      {ep.runtime && <div style={styles.episodeRuntimeBadge}>{ep.runtime}m</div>}
-                    </div>
-                    <div style={styles.episodeInfoCol}>
-                      <div style={styles.episodeTitleText}>
-                        {ep.episode_number}. {ep.name}
-                      </div>
-                      {ep.overview && (
-                        <p style={styles.episodeOverview}>{ep.overview}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p style={{ color: '#666', fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>
-                No episode data available for this season.
-              </p>
+              ) : (
+                <div ref={videoWrapperRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <iframe
+                    key={`${selectedAnimeServer}-${animeLang}-${currentEpisode}`}
+                    src={sources[0]?.url}
+                    style={styles.video}
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    title={`${media.title} Episode ${currentEpisode}`}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Now Playing Bar */}
+            <div className="anime-control-bar">
+              <div style={styles.episodeInfo}>
+                <span style={styles.episodeLabel}>Now Playing</span>
+                <span style={styles.episodeValue}>Episode {currentEpisode} of {totalEpisodes}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  disabled={currentEpisode <= 1}
+                  onClick={() => handleEpisodeChange(currentEpisode - 1)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, cursor: currentEpisode <= 1 ? 'not-allowed' : 'pointer',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: currentEpisode <= 1 ? '#52525b' : '#ffffff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                    fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600,
+                  }}
+                >
+                  <ChevronLeft size={14} /> Prev
+                </button>
+                <button
+                  disabled={currentEpisode >= totalEpisodes}
+                  onClick={() => handleEpisodeChange(currentEpisode + 1)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, cursor: currentEpisode >= totalEpisodes ? 'not-allowed' : 'pointer',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: currentEpisode >= totalEpisodes ? '#52525b' : '#ffffff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                    fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600,
+                  }}
+                >
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Dedicated Dual Server Rows: SUB and DUB */}
+            <div className="anime-servers-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <Monitor size={14} color="#a1a1aa" />
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 11, fontWeight: 700, color: '#71717a', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Streaming Servers
+                </span>
+              </div>
+
+              {/* Row 1: SUB SERVERS */}
+              <div className="anime-server-row">
+                <span className="anime-server-badge-sub">SUB</span>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+                  {ANIME_SERVERS.map(srv => {
+                    const isActive = selectedAnimeServer === srv.id && animeLang === 'sub';
+                    return (
+                      <button
+                        key={`sub-${srv.id}`}
+                        className={`anime-server-btn ${isActive ? 'anime-server-btn-active' : ''}`}
+                        onClick={() => handleSelectAnimeServer(srv.id, 'sub')}
+                      >
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: isActive ? '#030304' : 'rgba(255,255,255,0.35)',
+                        }} />
+                        {srv.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Row 2: DUB SERVERS */}
+              <div className="anime-server-row">
+                <span className="anime-server-badge-dub">DUB</span>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+                  {ANIME_SERVERS.map(srv => {
+                    const isActive = selectedAnimeServer === srv.id && animeLang === 'dub';
+                    return (
+                      <button
+                        key={`dub-${srv.id}`}
+                        className={`anime-server-btn ${isActive ? 'anime-server-btn-active' : ''}`}
+                        onClick={() => handleSelectAnimeServer(srv.id, 'dub')}
+                      >
+                        <span style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: isActive ? '#030304' : 'rgba(255,255,255,0.35)',
+                        }} />
+                        {srv.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Dedicated Episode & Season / Range Selector beside Video Player */}
+          <div className="anime-side-panel">
+            <div className="anime-side-header">
+              <h3 className="anime-side-title">
+                <Tv size={15} color="#ffffff" />
+                Episodes
+              </h3>
+              <span className="anime-total-badge">{totalEpisodes} Total</span>
+            </div>
+
+            {/* Quick Episode Jump Search Input */}
+            <div className="anime-jump-search">
+              <Search size={14} color="#71717a" style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                value={episodeSearch}
+                onChange={(e) => setEpisodeSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const num = parseInt(episodeSearch.trim(), 10);
+                    if (!isNaN(num) && num >= 1 && num <= totalEpisodes) {
+                      handleEpisodeChange(num);
+                    }
+                  }
+                }}
+                placeholder="Jump to ep # (e.g. 842)..."
+                className="anime-jump-input"
+              />
+              {episodeSearch && (
+                <button
+                  onClick={() => setEpisodeSearch('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                >
+                  <X size={13} color="#a1a1aa" />
+                </button>
+              )}
+            </div>
+
+            {/* Batch Range Tabs (Chunks of 100 for long series like One Piece) */}
+            {animeChunks.length > 1 && !episodeSearch && (
+              <div className="hide-scrollbar anime-chunk-list">
+                {animeChunks.map(chunk => {
+                  const isChunkActive = chunk.index === activeChunkIndex;
+                  return (
+                    <button
+                      key={chunk.index}
+                      className={`anime-chunk-pill ${isChunkActive ? 'anime-chunk-pill-active' : ''}`}
+                      onClick={() => setActiveChunkIndex(chunk.index)}
+                    >
+                      {chunk.label}
+                    </button>
+                  );
+                })}
+              </div>
             )}
+
+            {/* Episode Grid Table */}
+            <div className="hide-scrollbar anime-ep-grid">
+              {visibleAnimeEpisodes.length > 0 ? (
+                visibleAnimeEpisodes.map(ep => {
+                  const isActive = ep.episode_number === currentEpisode;
+                  return (
+                    <button
+                      key={ep.episode_number}
+                      className={`anime-ep-cell ${isActive ? 'anime-ep-cell-active' : ''}`}
+                      onClick={() => handleEpisodeChange(ep.episode_number)}
+                      title={`Episode ${ep.episode_number}`}
+                    >
+                      {ep.episode_number}
+                    </button>
+                  );
+                })
+              ) : (
+                <div style={{ padding: '24px 8px', textAlign: 'center', gridColumn: '1 / -1', color: '#71717a', fontSize: 13 }}>
+                  No episodes match "{episodeSearch}"
+                </div>
+              )}
+            </div>
           </div>
         </div>
+      ) : (
+        /* STANDARD MOVIES & SERIES LAYOUT */
+        <>
+          {/* Video Section */}
+          <div className="watch-video" style={styles.videoSection}>
+            {loadingSources ? (
+              <div style={styles.videoPlaceholder}>
+                <div style={styles.spinner} />
+                <p style={{ color: '#a1a1aa', fontFamily: "'Plus Jakarta Sans', sans-serif", marginTop: 16 }}>Connecting video stream...</p>
+              </div>
+            ) : (
+              <div ref={videoWrapperRef} style={{ ...styles.videoWrapper, position: 'relative' }}>
+                {useDirect && directUrl ? (
+                  <video controls autoPlay style={styles.video}>
+                    <source src={directUrl} type={videoType === 'm3u8' ? 'application/x-mpegURL' : 'video/mp4'} />
+                  </video>
+                ) : (
+                  <iframe
+                    src={sources[currentSource]?.url}
+                    style={styles.video}
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    title={media.title}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* CONTROLS BELOW VIDEO */}
+          <div className="controls-section" style={styles.controlsSection}>
+            {isSeries && (
+              <div className="episode-bar" style={styles.episodeBar}>
+                <div style={styles.episodeInfo}>
+                  <span style={styles.episodeLabel}>Now Playing</span>
+                  <span style={styles.episodeValue}>
+                    {`Season ${currentSeason} • ${currentEpisodeName}`}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
+                  <button
+                    disabled={currentEpisode <= 1}
+                    onClick={() => handleEpisodeChange(currentEpisode - 1)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8, cursor: currentEpisode <= 1 ? 'not-allowed' : 'pointer',
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                      color: currentEpisode <= 1 ? '#52525b' : '#ffffff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600,
+                    }}
+                  >
+                    <ChevronLeft size={14} /> Prev
+                  </button>
+                  <button
+                    disabled={currentEpisode >= totalEpisodes}
+                    onClick={() => handleEpisodeChange(currentEpisode + 1)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8, cursor: currentEpisode >= totalEpisodes ? 'not-allowed' : 'pointer',
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                      color: currentEpisode >= totalEpisodes ? '#52525b' : '#ffffff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600,
+                    }}
+                  >
+                    Next <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Source Selector */}
+            {sources.length > 0 && (
+              <div style={{ ...styles.sourceBar, flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={styles.sourceLabel}>
+                    <Monitor size={15} color="#ffffff" /> Stream Source:
+                  </span>
+                  <div className="source-buttons" style={styles.sourceButtons}>
+                    {sources.map((source, index) => (
+                      <button
+                        key={source.id || index}
+                        style={{
+                          ...styles.sourceBtn,
+                          ...(index === currentSource ? styles.sourceBtnActive : {}),
+                          ...(sourceErrors[index] ? { opacity: 0.4, textDecoration: 'line-through' } : {})
+                        }}
+                        onClick={() => {
+                          setSourceErrors(prev => ({ ...prev, [index]: false }));
+                          setCurrentSource(index);
+                        }}
+                      >
+                        {sourceErrors[index] ? '✕ ' : ''}{source.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Episodes list (series only) */}
+          {isSeries && (
+            <div className="watch-episodes" style={{ ...styles.episodesSection, padding: isMobile ? '24px 16px' : '36px 32px' }}>
+              <div style={styles.episodesHeader}>
+                <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? 18 : 22, margin: 0 }}>Episodes</h2>
+                {totalEpisodes > 0 && <span style={styles.episodesCount}>{totalEpisodes} episodes</span>}
+              </div>
+
+              {seasons.length > 1 && (
+                <div className="season-pills hide-scrollbar" style={styles.seasonPillRow}>
+                  {seasons.map(s => (
+                    <button
+                      key={s.season_number}
+                      onClick={() => handleSeasonChange(s.season_number)}
+                      style={{
+                        ...styles.seasonPill,
+                        ...(s.season_number === currentSeason ? styles.seasonPillActive : {})
+                      }}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div style={styles.episodeList}>
+                {episodesLoading ? (
+                  [1,2,3].map(i => (
+                    <div key={i} style={styles.episodeCard}>
+                      <div className="mv-sk" style={{ ...styles.episodeThumbWrap, background: '#121218' }} />
+                      <div style={{ flex: 1 }}>
+                        <div className="mv-sk" style={{ width: '60%', height: 14, borderRadius: 4, marginBottom: 8 }} />
+                        <div className="mv-sk" style={{ width: '90%', height: 12, borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  ))
+                ) : episodes.length > 0 ? (
+                  episodes.map(ep => {
+                    const isActive = ep.episode_number === currentEpisode;
+                    const thumbImg = ep.still || media.images?.fanart || media.images?.poster;
+                    return (
+                      <div
+                        key={ep.episode_number}
+                        className="episode-card"
+                        onClick={() => handleEpisodeChange(ep.episode_number)}
+                        style={{
+                          ...styles.episodeCard,
+                          ...(isActive ? styles.episodeCardActive : {}),
+                        }}
+                      >
+                        <div style={styles.episodeThumbWrap}>
+                          {thumbImg ? (
+                            <img src={thumbImg} alt={ep.name} style={styles.episodeThumb} loading="lazy" />
+                          ) : (
+                            <div style={styles.episodeThumbFallback}>
+                              <Tv size={isMobile ? 20 : 26} color="#71717a" />
+                            </div>
+                          )}
+                          <div style={styles.episodeNumBadge}>{ep.episode_number}</div>
+                          {!isActive && (
+                            <div className="episode-play-overlay" style={styles.episodePlayOverlay}>
+                              <Play size={18} fill="#fff" color="#fff" />
+                            </div>
+                          )}
+                          {isActive && (
+                            <div style={styles.nowPlayingBadge}>
+                              <span style={styles.nowPlayingDot} /> Playing
+                            </div>
+                          )}
+                          {ep.runtime && <div style={styles.episodeRuntimeBadge}>{ep.runtime}m</div>}
+                        </div>
+                        <div style={styles.episodeInfoCol}>
+                          <div style={styles.episodeTitleText}>
+                            {ep.episode_number}. {ep.name}
+                          </div>
+                          {ep.overview && (
+                            <p style={styles.episodeOverview}>{ep.overview}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p style={{ color: '#71717a', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14 }}>
+                    No episode data available.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Movie Details */}
+      {/* Details Section */}
       <div className="watch-details" style={styles.detailsSection}>
         <div style={styles.detailsContent}>
           {media.images?.poster && (
@@ -479,13 +882,13 @@ export default function Watch() {
           <div style={styles.infoContainer}>
             <h1 style={styles.title}>{media.title}</h1>
             <div style={styles.metaRow}>
-              {media.year && <span style={styles.metaItem}><Calendar size={15} /> {media.year}</span>}
+              {media.year && <span style={styles.metaItem}><Calendar size={14} /> {media.year}</span>}
               {media.rating && (
                 <span style={styles.rating}>
-                  <Star size={15} fill="#e8b84b" /> {typeof media.rating === 'object' ? (media.rating.percentage / 10).toFixed(1) : media.rating}
+                  <Star size={14} fill="#ffffff" color="#ffffff" /> {typeof media.rating === 'object' ? (media.rating.percentage / 10).toFixed(1) : media.rating}
                 </span>
               )}
-              {media.runtime > 0 && <span style={styles.metaItem}><Clock size={15} /> {media.runtime} min</span>}
+              {media.runtime > 0 && <span style={styles.metaItem}><Clock size={14} /> {media.runtime} min</span>}
               {media.seasons && <span style={styles.metaItem}>{media.seasons} Seasons • {media.episodes} Episodes</span>}
             </div>
             {media.genres && (
@@ -501,8 +904,8 @@ export default function Watch() {
       </div>
 
       {/* Recommendations */}
-      <div style={{ ...styles.recommendationsSection, padding: isMobile ? '24px 0 32px' : '32px' }}>
-        <h2 style={{ ...styles.sectionTitle, padding: isMobile ? '0 16px' : 0, fontSize: isMobile ? 17 : 20 }}>
+      <div style={{ ...styles.recommendationsSection, padding: isMobile ? '24px 0 32px' : '36px 32px' }}>
+        <h2 style={{ ...styles.sectionTitle, padding: isMobile ? '0 16px' : 0, fontSize: isMobile ? 18 : 22 }}>
           You May Also Like
         </h2>
         {loadingRecs ? (
@@ -526,7 +929,7 @@ export default function Watch() {
             </div>
           )
         ) : (
-          <p style={{ color: '#666', fontFamily: "'DM Sans', sans-serif", padding: isMobile ? '0 16px' : 0 }}>
+          <p style={{ color: '#71717a', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: isMobile ? '0 16px' : 0 }}>
             No recommendations available.
           </p>
         )}
@@ -541,27 +944,309 @@ const WATCH_CSS = `
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   @keyframes wv-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
   .mv-sk {
-    background: linear-gradient(90deg, #0d1420 25%, #1a2235 50%, #0d1420 75%);
+    background: linear-gradient(90deg, #09090d 25%, #181822 50%, #09090d 75%);
     background-size: 200% 100%;
     animation: wv-shimmer 1.4s ease infinite;
   }
   .hide-scrollbar::-webkit-scrollbar { display: none; }
   .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 
-  .episode-card { transition: background 0.2s ease, transform 0.15s ease; }
-  .episode-card:hover { background: rgba(255,255,255,0.04); }
+  .episode-card { 
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .episode-card:hover { 
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
   @media (hover: hover) and (pointer: fine) {
     .episode-card:hover .episode-play-overlay { opacity: 1; }
   }
   .episode-play-overlay { opacity: 0; transition: opacity 0.2s ease; }
 
   @keyframes wv-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* Anime Beside-The-Player Theater Layout */
+  .anime-theater {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+    padding: 20px 32px 32px;
+    max-width: 1680px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 960px) {
+    .anime-theater {
+      grid-template-columns: 1fr;
+      padding: 12px 16px 24px;
+      gap: 16px;
+    }
+  }
+
+  .anime-video-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .anime-video-wrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000000;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  }
+
+  .anime-control-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: rgba(14, 14, 18, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .anime-servers-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: rgba(14, 14, 18, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .anime-server-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .anime-server-badge-sub {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .anime-server-badge-dub {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #a1a1aa;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-width: 44px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .anime-server-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #d4d4d8;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.18s ease;
+  }
+  .anime-server-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+  }
+  .anime-server-btn-active {
+    background: #ffffff !important;
+    color: #030304 !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4) !important;
+    font-weight: 700 !important;
+  }
+
+  .anime-side-panel {
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    background: rgba(14, 14, 18, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 16px;
+    height: 580px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  @media (max-width: 960px) {
+    .anime-side-panel {
+      height: 480px;
+    }
+  }
+
+  .anime-side-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .anime-side-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .anime-total-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #a1a1aa;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .anime-jump-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 10px;
+  }
+
+  .anime-jump-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12.5px;
+  }
+  .anime-jump-input::placeholder {
+    color: #71717a;
+  }
+
+  .anime-chunk-list {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+
+  .anime-chunk-pill {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #a1a1aa;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .anime-chunk-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .anime-chunk-pill-active {
+    background: #ffffff !important;
+    color: #030304 !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3) !important;
+    font-weight: 700 !important;
+  }
+
+  .anime-ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    grid-auto-rows: 40px;
+    align-content: start;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px;
+  }
+
+  .anime-ep-cell {
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: #d4d4d8;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .anime-ep-cell:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+  }
+  .anime-ep-cell-active {
+    background: #ffffff !important;
+    color: #030304 !important;
+    border-color: #ffffff !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.4) !important;
+  }
 `;
 
 const styles = {
   container: {
-    background: '#080c14',
+    background: '#030304',
     minHeight: '100vh',
+    paddingTop: 68,
   },
   errorPage: {
     height: '100vh',
@@ -569,24 +1254,25 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#080c14',
+    background: '#030304',
     gap: 20,
   },
   homeBtn: {
-    padding: '12px 24px',
-    background: '#e50914',
-    color: 'white',
+    padding: '12px 28px',
+    background: '#ffffff',
+    color: '#030304',
     border: 'none',
-    borderRadius: 8,
+    borderRadius: 10,
     cursor: 'pointer',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 16,
-    fontWeight: 600,
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 15,
+    fontWeight: 700,
+    boxShadow: '0 0 20px rgba(255, 255, 255, 0.3)',
   },
   topNav: {
-    padding: '16px 32px',
-    background: '#000',
-    borderBottom: '1px solid #1a2235',
+    padding: '12px 32px',
+    background: 'rgba(10, 10, 14, 0.95)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
   },
   backBtn: {
     display: 'flex',
@@ -594,14 +1280,17 @@ const styles = {
     gap: 8,
     background: 'none',
     border: 'none',
-    color: '#8892a4',
+    color: '#a1a1aa',
     cursor: 'pointer',
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 14,
+    fontWeight: 500,
+    transition: 'color 0.2s',
   },
   videoSection: {
     width: '100%',
-    background: '#000',
+    background: '#000000',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
   },
   videoPlaceholder: {
     width: '100%',
@@ -611,37 +1300,24 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#0a0a0a',
+    background: '#070709',
   },
   videoWrapper: {
     width: '100%',
     aspectRatio: '16/9',
-    maxHeight: '70vh',
+    maxHeight: '72vh',
+    background: '#000',
   },
   video: {
     width: '100%',
     height: '100%',
     border: 'none',
   },
-  fullscreenBtn: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    background: 'rgba(10,10,10,0.7)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    zIndex: 5,
-  },
   controlsSection: {
-    background: '#0a0f1a',
-    borderBottom: '1px solid #1a2235',
+    background: 'rgba(14, 14, 18, 0.95)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
     padding: '16px 32px',
   },
   episodeBar: {
@@ -651,8 +1327,8 @@ const styles = {
     flexWrap: 'wrap',
     gap: 16,
     marginBottom: 16,
-    padding: '12px 0',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
+    padding: '10px 0',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
   },
   episodeInfo: {
     display: 'flex',
@@ -660,16 +1336,16 @@ const styles = {
     gap: 12,
   },
   episodeLabel: {
-    color: '#666',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 12,
-    fontWeight: 600,
+    color: '#71717a',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 11,
+    fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   episodeValue: {
-    color: '#e50914',
-    fontFamily: "'DM Sans', sans-serif",
+    color: '#ffffff',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 15,
     fontWeight: 600,
   },
@@ -678,16 +1354,16 @@ const styles = {
     alignItems: 'center',
     gap: 12,
     flexWrap: 'wrap',
-    padding: '8px 0',
+    padding: '6px 0',
   },
   sourceLabel: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    color: '#888',
-    fontFamily: "'DM Sans', sans-serif",
+    color: '#d4d4d8',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 13,
-    fontWeight: 500,
+    fontWeight: 600,
     flexShrink: 0,
   },
   sourceButtons: {
@@ -697,27 +1373,28 @@ const styles = {
   },
   sourceBtn: {
     padding: '8px 16px',
-    background: '#1a2235',
-    color: '#ccc',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 6,
+    background: 'rgba(255, 255, 255, 0.06)',
+    color: '#d4d4d8',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: 8,
     cursor: 'pointer',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 12,
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 12.5,
     fontWeight: 500,
     transition: 'all 0.2s',
   },
   sourceBtnActive: {
-    background: '#e50914',
-    color: '#fff',
-    border: '1px solid #e50914',
+    background: '#ffffff',
+    color: '#030304',
+    border: '1px solid #ffffff',
+    boxShadow: '0 0 16px rgba(255, 255, 255, 0.35)',
+    fontWeight: 700,
   },
 
-  // ── Episodes section ──
   episodesSection: {
     maxWidth: 1200,
     margin: '0 auto',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
   },
   episodesHeader: {
     display: 'flex',
@@ -726,8 +1403,8 @@ const styles = {
     marginBottom: 16,
   },
   episodesCount: {
-    color: '#3a4560',
-    fontFamily: "'DM Sans', sans-serif",
+    color: '#71717a',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 12,
     fontWeight: 500,
   },
@@ -735,17 +1412,17 @@ const styles = {
     display: 'flex',
     gap: 8,
     overflowX: 'auto',
-    paddingBottom: 4,
+    paddingBottom: 6,
     marginBottom: 20,
   },
   seasonPill: {
     flexShrink: 0,
     padding: '8px 18px',
     borderRadius: 20,
-    background: '#12192a',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#8892a4',
-    fontFamily: "'DM Sans', sans-serif",
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    color: '#a1a1aa',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
@@ -753,26 +1430,28 @@ const styles = {
     transition: 'all 0.2s',
   },
   seasonPillActive: {
-    background: '#e8b84b',
-    borderColor: '#e8b84b',
-    color: '#080c14',
+    background: '#ffffff',
+    borderColor: '#ffffff',
+    color: '#030304',
+    boxShadow: '0 0 16px rgba(255, 255, 255, 0.3)',
   },
   episodeList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
+    gap: 6,
   },
   episodeCard: {
     display: 'flex',
     gap: 14,
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 12,
     cursor: 'pointer',
     alignItems: 'flex-start',
   },
   episodeCardActive: {
-    background: 'rgba(232,184,75,0.08)',
-    border: '1px solid rgba(232,184,75,0.25)',
+    background: 'rgba(255, 255, 255, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    boxShadow: '0 0 20px rgba(255, 255, 255, 0.1)',
   },
   episodeThumbWrap: {
     position: 'relative',
@@ -781,7 +1460,8 @@ const styles = {
     aspectRatio: '16/9',
     borderRadius: 8,
     overflow: 'hidden',
-    background: '#0d1420',
+    background: '#09090d',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
   },
   episodeThumb: {
     width: '100%',
@@ -795,27 +1475,28 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #12192a, #0a0f1a)',
+    background: 'linear-gradient(135deg, #0f0f15, #08080c)',
   },
   episodeNumBadge: {
     position: 'absolute',
     top: 6,
     left: 6,
-    background: 'rgba(0,0,0,0.75)',
+    background: 'rgba(0,0,0,0.8)',
     color: '#fff',
-    fontFamily: "'DM Sans', sans-serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 11,
     fontWeight: 700,
     padding: '2px 7px',
     borderRadius: 5,
+    border: '1px solid rgba(255, 255, 255, 0.12)',
   },
   episodeRuntimeBadge: {
     position: 'absolute',
     bottom: 6,
     right: 6,
-    background: 'rgba(0,0,0,0.75)',
-    color: '#ccc',
-    fontFamily: "'DM Sans', sans-serif",
+    background: 'rgba(0,0,0,0.8)',
+    color: '#d4d4d8',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 10,
     fontWeight: 600,
     padding: '2px 6px',
@@ -827,7 +1508,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'rgba(0,0,0,0.35)',
+    background: 'rgba(0,0,0,0.4)',
   },
   nowPlayingBadge: {
     position: 'absolute',
@@ -836,9 +1517,9 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 5,
-    background: '#e8b84b',
-    color: '#080c14',
-    fontFamily: "'DM Sans', sans-serif",
+    background: '#ffffff',
+    color: '#030304',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 10,
     fontWeight: 700,
     padding: '2px 8px',
@@ -850,7 +1531,7 @@ const styles = {
     width: 5,
     height: 5,
     borderRadius: '50%',
-    background: '#080c14',
+    background: '#030304',
     animation: 'wv-pulse 1.4s ease infinite',
   },
   episodeInfoCol: {
@@ -859,15 +1540,15 @@ const styles = {
     paddingTop: 2,
   },
   episodeTitleText: {
-    color: '#e8eaf0',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 14,
+    color: '#ffffff',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 14.5,
     fontWeight: 600,
     marginBottom: 4,
   },
   episodeOverview: {
-    color: '#6878a0',
-    fontFamily: "'DM Sans', sans-serif",
+    color: '#a1a1aa',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 12.5,
     lineHeight: 1.5,
     margin: 0,
@@ -878,7 +1559,7 @@ const styles = {
   },
 
   detailsSection: {
-    padding: '32px',
+    padding: '36px 32px',
     maxWidth: 1200,
     margin: '0 auto',
   },
@@ -886,13 +1567,20 @@ const styles = {
     display: 'flex',
     gap: 32,
     flexWrap: 'wrap',
+    background: 'rgba(16, 16, 22, 0.65)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: 18,
+    padding: '28px',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
   },
   posterContainer: {
     flexShrink: 0,
     width: 200,
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    boxShadow: '0 16px 40px rgba(0,0,0,0.7)',
   },
   poster: {
     width: '100%',
@@ -903,7 +1591,7 @@ const styles = {
     minWidth: 280,
   },
   title: {
-    fontFamily: "'Playfair Display', serif",
+    fontFamily: "'Cinzel', 'Playfair Display', serif",
     fontSize: 'clamp(24px, 3vw, 40px)',
     fontWeight: 900,
     color: '#fff',
@@ -911,7 +1599,7 @@ const styles = {
   },
   metaRow: {
     display: 'flex',
-    gap: 20,
+    gap: 18,
     alignItems: 'center',
     flexWrap: 'wrap',
     marginBottom: 16,
@@ -920,16 +1608,16 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    color: '#8892a4',
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 14,
+    color: '#a1a1aa',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 13.5,
   },
   rating: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
-    color: '#e8b84b',
-    fontFamily: "'DM Sans', sans-serif",
+    gap: 5,
+    color: '#ffffff',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 14,
     fontWeight: 600,
   },
@@ -940,32 +1628,31 @@ const styles = {
     marginBottom: 20,
   },
   genre: {
-    padding: '4px 12px',
+    padding: '5px 12px',
     background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    border: '1px solid rgba(255,255,255,0.14)',
     borderRadius: 20,
-    color: '#a0a8c0',
-    fontFamily: "'DM Sans', sans-serif",
+    color: '#ffffff',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 12,
     textTransform: 'capitalize',
   },
   synopsis: {
-    fontFamily: "'DM Sans', sans-serif",
-    fontSize: 15,
-    lineHeight: 1.8,
-    color: '#8892a4',
-    maxWidth: 700,
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: 14.5,
+    lineHeight: 1.75,
+    color: '#d4d4d8',
+    maxWidth: 750,
   },
   recommendationsSection: {
-    padding: '32px',
     maxWidth: 1200,
     margin: '0 auto',
   },
   sectionTitle: {
-    fontFamily: "'DM Sans', sans-serif",
-    color: '#e8eaf0',
-    fontSize: 20,
-    fontWeight: 600,
+    fontFamily: "'Cinzel', serif",
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: 700,
     marginBottom: 20,
   },
   recGrid: {
@@ -985,11 +1672,11 @@ const styles = {
     scrollSnapAlign: 'start',
   },
   spinner: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     border: '3px solid rgba(255,255,255,0.1)',
-    borderTop: '3px solid #e50914',
+    borderTop: '3px solid #ffffff',
     borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
+    animation: 'spin 0.9s linear infinite',
   },
 };

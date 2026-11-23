@@ -1,15 +1,15 @@
-// ─── "Continue Watching" — tracks only the SINGLE most recent thing watched ───
-// Deliberately not a history list: every new watch overwrites the last one.
+// services/Watchhistory.js
+// Tracks the single most recent item in localStorage for instant Continue Watching hero card,
+// and simultaneously persists to IndexedDB guest watch history (up to 20 items).
+
+import { recordHistoryItem } from "./indexedDbHistory";
 
 const KEY = "sinstreams_last_watched";
 
 /**
  * Records the most recently watched title.
- * @param {object} media - the media object (movie or series)
- * @param {object} [progress] - optional playback context for series
- * @param {number} [progress.season]
- * @param {number} [progress.episode]
- * @param {string} [progress.episodeName]
+ * @param {object} media - the media object (movie, series, or anime)
+ * @param {object} [progress] - optional playback context
  */
 export function saveLastWatched(media, progress = {}) {
   if (!media) return;
@@ -22,6 +22,11 @@ export function saveLastWatched(media, progress = {}) {
       watchedAt: Date.now(),
     };
     localStorage.setItem(KEY, JSON.stringify(entry));
+
+    // Also persist into IndexedDB for the 20-item guest watch history
+    recordHistoryItem(media, progress).catch(err => {
+      console.warn("Could not save to IndexedDB history:", err);
+    });
   } catch (err) {
     console.warn("Could not save last watched:", err.message);
   }
@@ -45,6 +50,5 @@ export function clearLastWatched() {
   try {
     localStorage.removeItem(KEY);
   } catch (err) {
-    // ignore
   }
 }

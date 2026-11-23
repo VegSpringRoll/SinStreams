@@ -4,30 +4,29 @@ import MediaCard from '../components/MediaCard'
 import HeroSlider from '../components/HeroSlider'
 import VideoPlayer from '../components/VideoPlayer'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { getAnime } from '../../services/mediaService'
 import { getLastWatched, clearLastWatched } from '../../services/Watchhistory'
+import { getWatchHistory } from '../../services/indexedDbHistory'
+import { getTrendingAnime } from '../../services/animeService'
 import { motion } from 'framer-motion'
-import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw, Heart, Sparkles } from 'lucide-react'
+import { Film, Tv, TrendingUp, Zap, Laugh, Rocket, Ghost, Drama, Swords, Fingerprint, ChevronRight, ChevronLeft, Play, X, RotateCcw, Heart, Clock, Sparkles } from 'lucide-react'
 
-// Curated genre picks for the homepage — the dedicated /movies and /series
-// pages cover the full genre list, so Home only teases a handful of each.
+// Pure monochrome glassmorphism genre icons
 const MOVIE_HOME_GENRES = [
-  { name: 'Action',           icon: Zap,    gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 28 },
-  { name: 'Comedy',           icon: Laugh,  gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Science Fiction',  icon: Rocket, gradient: 'linear-gradient(135deg, #4fc3f7, #0288d1)', tmdbId: 878 },
-  { name: 'Horror',           icon: Ghost,  gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 27 },
+  { name: 'Action',           icon: Zap,        tmdbId: 28 },
+  { name: 'Comedy',           icon: Laugh,      tmdbId: 35 },
+  { name: 'Science Fiction',  icon: Rocket,     tmdbId: 878 },
+  { name: 'Horror',           icon: Ghost,      tmdbId: 27 },
 ];
 
 const SERIES_HOME_GENRES = [
-  { name: 'Drama',              icon: Drama,       gradient: 'linear-gradient(135deg, #5c6bc0, #283593)', tmdbId: 18 },
-  { name: 'Comedy',              icon: Laugh,      gradient: 'linear-gradient(135deg, #ff9800, #f57c00)', tmdbId: 35 },
-  { name: 'Action & Adventure',  icon: Swords,     gradient: 'linear-gradient(135deg, #ff4444, #cc0000)', tmdbId: 10759 },
-  { name: 'Crime',               icon: Fingerprint,gradient: 'linear-gradient(135deg, #7b1fa2, #4a0072)', tmdbId: 80 },
+  { name: 'Drama',              icon: Drama,       tmdbId: 18 },
+  { name: 'Comedy',              icon: Laugh,      tmdbId: 35 },
+  { name: 'Action & Adventure',  icon: Swords,     tmdbId: 10759 },
+  { name: 'Crime',               icon: Fingerprint,tmdbId: 80 },
 ];
 
-// ── ContentRow — Netflix-style horizontal row shared by the Movies & Series
-//    sections on Home. Same pattern as MovieRow/SeriesRow in Movies.jsx / Series.jsx. ──
-function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobile }) {
+// ── ContentRow — Pure Monochrome Netflix-style horizontal row ──
+function ContentRow({ title, items, type, icon: Icon, isFirst, isMobile }) {
   const trackRef = useRef(null);
 
   const scrollByAmount = (dir) => {
@@ -42,10 +41,10 @@ function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobil
     <motion.div
       className="hm-row"
       style={{ marginBottom: isFirst ? 24 : 32 }}
-      initial={{ opacity: 0, y: 22 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
     >
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
@@ -53,32 +52,33 @@ function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobil
       }}>
         {Icon && (
           <div style={{
-            width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-            background: gradient || 'rgba(255,255,255,0.08)',
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
           }}>
-            <Icon size={13} color="#fff" />
+            <Icon size={14} color="#ffffff" />
           </div>
         )}
         <h3 style={{
-          fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 14 : 15.5,
-          fontWeight: 600, color: '#c8d0e0', margin: 0, letterSpacing: '-0.1px',
+          fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? 14.5 : 16,
+          fontWeight: 600, color: '#ffffff', margin: 0, letterSpacing: '-0.1px',
         }}>{title}</h3>
       </div>
 
       <div className="hm-row-wrap" style={{ position: 'relative' }}>
         {!isMobile && (
           <button aria-label="Scroll left" className="hm-arrow hm-arrow-l" onClick={() => scrollByAmount(-1)}>
-            <ChevronLeft size={20} />
+            <ChevronLeft size={22} color="#ffffff" />
           </button>
         )}
 
         <div
           ref={trackRef}
           style={{
-            display: 'flex', gap: isMobile ? 10 : 12, overflowX: 'auto',
-            padding: isMobile ? '4px 16px 10px' : '4px 32px 12px',
+            display: 'flex', gap: isMobile ? 10 : 14, overflowX: 'auto',
+            padding: isMobile ? '4px 16px 10px' : '4px 32px 14px',
             scrollbarWidth: 'none', scrollSnapType: 'x mandatory',
           }}
         >
@@ -91,7 +91,7 @@ function ContentRow({ title, items, type, gradient, icon: Icon, isFirst, isMobil
 
         {!isMobile && (
           <button aria-label="Scroll right" className="hm-arrow hm-arrow-r" onClick={() => scrollByAmount(1)}>
-            <ChevronRight size={20} />
+            <ChevronRight size={22} color="#ffffff" />
           </button>
         )}
       </div>
@@ -108,16 +108,22 @@ export default function Home() {
   const [loadingSeries, setLoadingSeries] = useState(true)
   const [playingMedia, setPlayingMedia] = useState(null)
   const [showQR, setShowQR] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [movieGenrePools, setMovieGenrePools] = useState({})
   const [seriesGenrePools, setSeriesGenrePools] = useState({})
   const [continueWatching, setContinueWatching] = useState(() => getLastWatched())
+  const [historyList, setHistoryList] = useState([])
+  const [animeList, setAnimeList] = useState([])
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   )
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getWatchHistory().then(items => setHistoryList(items || []));
+    getTrendingAnime(1, 16).then(items => setAnimeList(items || []));
+  }, []);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -127,13 +133,11 @@ export default function Home() {
 
   useEffect(() => {
     if (location.state?.playMedia) {
-      console.log("Playing media from search:", location.state.playMedia.title);
       setPlayingMedia(location.state.playMedia);
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  // Toggle watchlist function
   const toggleWatchlist = (id) => {
     setWatchlist(prev =>
       prev.includes(id)
@@ -142,18 +146,14 @@ export default function Home() {
     )
   }
 
-  // Handle play media
   const handlePlay = (media) => {
-    console.log("🎬 Playing:", media.title);
     setPlayingMedia(media);
   };
 
-  // Handle close player
   const handleClosePlayer = () => {
     setPlayingMedia(null);
   };
 
-  // Continue Watching — resume the last-watched title at its saved point
   const handleResumeContinue = () => {
     if (!continueWatching) return;
     const { media, season, episode } = continueWatching;
@@ -174,7 +174,6 @@ export default function Home() {
     setContinueWatching(null);
   };
 
-  // UPI functions
   const Message = 'Become a Supporter ^_^'; 
 
   const openUPIApp = (amount = 10) => {
@@ -182,18 +181,13 @@ export default function Home() {
     window.open(upiLink, '_blank');
   };
 
-  // Fetch movies
   useEffect(() => {
     const fetchMovies = async () => {
       try {
         setLoading(true)
         setError(null)
-        
         const data = await getMovies()
-        console.log("Movies loaded:", data?.length || 0, "items")
-        
         setMovies(data || [])
-        
         if (!data || data.length === 0) {
           setError("No movies available at the moment.")
         }
@@ -209,15 +203,11 @@ export default function Home() {
     fetchMovies()
   }, [])
 
-  // Fetch series
   useEffect(() => {
     const fetchSeries = async () => {
       try {
         setLoadingSeries(true)
-        
         const data = await getShows()
-        console.log("Series loaded:", data?.length || 0, "items")
-        
         setSeries(data || [])
       } catch (err) {
         console.error("Failed to fetch series:", err)
@@ -230,7 +220,6 @@ export default function Home() {
     fetchSeries()
   }, [])
 
-  // Fetch curated genre pools for the Movies & Series rows
   useEffect(() => {
     let cancelled = false;
 
@@ -254,7 +243,6 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [])
 
-  // Top-rated slices used for the "Trending Now" row in each section
   const trendingMoviesSorted = useMemo(() =>
     [...movies].sort((a, b) => {
       const ra = typeof a.rating === 'object' ? a.rating.percentage / 10 : (a.rating || 0);
@@ -272,7 +260,7 @@ export default function Home() {
   // Loading state
   if (loading) {
     return (
-      <div style={{ background: '#080c14', minHeight: '100vh', paddingTop: 90, overflow: 'hidden' }}>
+      <div style={{ background: '#030304', minHeight: '100vh', paddingTop: 90, overflow: 'hidden' }}>
         <style>{HOME_ROW_CSS}</style>
         <div style={{ padding: isMobile ? '0 16px' : '0 32px' }}>
           <div className="hm-skeleton" style={{ width: '100%', maxWidth: 900, aspectRatio: isMobile ? '4/5' : '21/9', borderRadius: 16, marginBottom: 32 }} />
@@ -300,42 +288,44 @@ export default function Home() {
   if (error && movies.length === 0 && series.length === 0) {
     return (
       <div style={{
-        background: "#080c14",
+        background: "#030304",
         minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
         paddingTop: 90,
         paddingLeft: 20,
         paddingRight: 20,
       }}>
         <div style={{
-          textAlign: "center", maxWidth: 380, padding: '40px 32px',
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 20, backdropFilter: 'blur(12px)',
+          textAlign: "center", maxWidth: 400, padding: '40px 32px',
+          background: 'rgba(18, 18, 22, 0.7)', border: '1px solid rgba(255,255,255,0.14)',
+          borderRadius: 20, backdropFilter: 'blur(20px)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.15)',
         }}>
-          <div style={{ fontSize: 48, marginBottom: 18 }}>😕</div>
-          <h2 style={{ color: "#e8eaf0", marginBottom: 10, fontSize: 21, fontWeight: 700 }}>Something went wrong</h2>
-          <p style={{ color: "#6878a0", marginBottom: 26, fontSize: 14.5, lineHeight: 1.6 }}>{error}</p>
+          <Film size={44} color="#ffffff" style={{ margin: "0 auto 18px", opacity: 0.8 }} />
+          <h2 style={{ color: "#ffffff", marginBottom: 10, fontSize: 22, fontWeight: 700, fontFamily: "'Cinzel', serif" }}>Archive Notice</h2>
+          <p style={{ color: "#a1a1aa", marginBottom: 26, fontSize: 14.5, lineHeight: 1.6 }}>{error}</p>
           <button 
             onClick={() => window.location.reload()}
             style={{
-              padding: "13px 30px",
-              background: "#e8b84b",
-              color: "#080c14",
+              padding: "13px 32px",
+              background: "#ffffff",
+              color: "#030304",
               border: "none",
               borderRadius: 10,
               cursor: "pointer",
               fontSize: 15,
               fontWeight: 700,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              boxShadow: "0 0 20px rgba(255, 255, 255, 0.3)",
               transition: "transform 0.15s ease",
             }}
             onMouseEnter={(e) => e.target.style.transform = "scale(1.03)"}
             onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
           >
-            Try Again
+            Retry Connection
           </button>
         </div>
       </div>
@@ -346,30 +336,30 @@ export default function Home() {
     <>
       <style>{HOME_ROW_CSS}</style>
       <div className="page-content" style={{
-        background: "#080c14",
+        background: "#030304",
         minHeight: "100vh",
-        paddingTop: 90,
+        paddingTop: 70,
         paddingBottom: 40,
         overflowX: "hidden",
         position: "relative",
       }}>
-        {/* Ambient background glow — subtle, adds depth without distracting */}
+        {/* Ambient specular illumination in pure monochrome */}
         <div aria-hidden="true" style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 900,
+          position: 'absolute', top: 0, left: 0, right: 0, height: 1000,
           pointerEvents: 'none', zIndex: 0, overflow: 'hidden',
         }}>
           <div style={{
-            position: 'absolute', top: -200, left: '10%', width: 600, height: 600,
-            borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,184,75,0.06), transparent 70%)',
+            position: 'absolute', top: -150, left: '20%', width: 700, height: 700,
+            borderRadius: '50%', background: 'radial-gradient(circle, rgba(255, 255, 255, 0.04), transparent 70%)',
           }} />
           <div style={{
-            position: 'absolute', top: 100, right: '5%', width: 500, height: 500,
-            borderRadius: '50%', background: 'radial-gradient(circle, rgba(91,164,212,0.05), transparent 70%)',
+            position: 'absolute', top: 300, right: '10%', width: 600, height: 600,
+            borderRadius: '50%', background: 'radial-gradient(circle, rgba(255, 255, 255, 0.025), transparent 70%)',
           }} />
         </div>
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Hero Slider - Only show if there are movies */}
+        {/* Hero Slider */}
         {movies.length > 0 && (
           <HeroSlider
             slides={movies.slice(0, 4)}
@@ -389,16 +379,17 @@ export default function Home() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
               <div style={{
-                width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-                background: 'linear-gradient(135deg, #e8b84b, #e8b84b88)',
+                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(232,184,75,0.25)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
               }}>
-                <RotateCcw size={13} color="#080c14" strokeWidth={2.4} />
+                <RotateCcw size={14} color="#ffffff" strokeWidth={2.2} />
               </div>
               <h2 style={{
-                fontFamily: "'DM Sans', sans-serif", fontSize: isMobile ? 13 : 14.5,
-                fontWeight: 700, color: '#c8d0e0', margin: 0,
+                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? 13 : 14.5,
+                fontWeight: 700, color: '#ffffff', margin: 0,
                 textTransform: 'uppercase', letterSpacing: '0.08em',
               }}>Continue Watching</h2>
             </div>
@@ -410,29 +401,30 @@ export default function Home() {
                 position: 'relative', display: 'flex',
                 flexDirection: isMobile ? 'column' : 'row',
                 borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+                background: 'rgba(18, 18, 24, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                boxShadow: '0 16px 40px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
               }}
             >
               <button
                 onClick={(e) => { e.stopPropagation(); handleDismissContinue(); }}
                 aria-label="Remove from Continue Watching"
                 style={{
-                  position: 'absolute', top: 10, right: 10, zIndex: 3,
-                  width: 28, height: 28, borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff',
+                  position: 'absolute', top: 12, right: 12, zIndex: 3,
+                  width: 30, height: 30, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                  backdropFilter: 'blur(4px)',
+                  backdropFilter: 'blur(6px)',
                 }}
               >
-                <X size={14} />
+                <X size={15} />
               </button>
 
               <div style={{
                 position: 'relative', flexShrink: 0,
-                width: isMobile ? '100%' : 340,
+                width: isMobile ? '100%' : 360,
                 aspectRatio: '16/9', background: '#000',
               }}>
                 <img
@@ -443,28 +435,28 @@ export default function Home() {
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: isMobile
-                    ? 'linear-gradient(to top, rgba(8,12,20,0.92), rgba(8,12,20,0.05) 60%)'
-                    : 'linear-gradient(to right, rgba(8,12,20,0.1), rgba(8,12,20,0.25))',
+                    ? 'linear-gradient(to top, rgba(3,3,4,0.95), rgba(3,3,4,0.1) 60%)'
+                    : 'linear-gradient(to right, rgba(3,3,4,0.2), rgba(3,3,4,0.65))',
                 }} />
                 <div className="cw-play-btn" style={{
                   position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                  width: 50, height: 50, borderRadius: '50%',
-                  background: 'rgba(232,184,75,0.95)',
-                  boxShadow: '0 8px 24px rgba(232,184,75,0.4)',
+                  width: 52, height: 52, borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 0 25px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0,0,0,0.6)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Play size={20} fill="#080c14" color="#080c14" style={{ marginLeft: 3 }} />
+                  <Play size={20} fill="#030304" color="#030304" style={{ marginLeft: 3 }} />
                 </div>
               </div>
 
-              <div style={{ flex: 1, padding: isMobile ? '14px 16px 16px' : '20px 24px', minWidth: 0 }}>
+              <div style={{ flex: 1, padding: isMobile ? '16px' : '22px 28px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <h3 style={{
-                  fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 18 : 22,
-                  fontWeight: 800, color: '#e8eaf0', margin: '0 0 6px', letterSpacing: '-0.3px',
+                  fontFamily: "'Cinzel', 'Playfair Display', serif", fontSize: isMobile ? 18 : 22,
+                  fontWeight: 800, color: '#ffffff', margin: '0 0 6px', letterSpacing: '-0.3px',
                 }}>{continueWatching.media.title}</h3>
                 <p style={{
-                  fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#e8b84b',
-                  fontWeight: 600, margin: '0 0 8px',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#d4d4d8',
+                  fontWeight: 600, margin: '0 0 10px',
                 }}>
                   {continueWatching.season
                     ? `Season ${continueWatching.season} • Episode ${continueWatching.episode}${continueWatching.episodeName ? `: ${continueWatching.episodeName}` : ''}`
@@ -472,30 +464,148 @@ export default function Home() {
                 </p>
                 {continueWatching.media.synopsis && !isMobile && (
                   <p style={{
-                    fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#6878a0',
-                    lineHeight: 1.6, margin: '0 0 14px',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#a1a1aa',
+                    lineHeight: 1.6, margin: '0 0 16px',
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                   }}>{continueWatching.media.synopsis}</p>
                 )}
-                <button
-                  className="cw-resume-btn"
-                  onClick={(e) => { e.stopPropagation(); handleResumeContinue(); }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    background: '#e8b84b', color: '#080c14', border: 'none',
-                    borderRadius: 9, padding: '10px 20px', fontSize: 14, fontWeight: 700,
-                    fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
-                  }}
-                >
-                  <Play size={15} fill="#080c14" /> Resume
-                </button>
+                <div>
+                  <button
+                    className="cw-resume-btn"
+                    onClick={(e) => { e.stopPropagation(); handleResumeContinue(); }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      background: '#ffffff', color: '#030304', border: 'none',
+                      borderRadius: 10, padding: '11px 24px', fontSize: 14, fontWeight: 700,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif", cursor: 'pointer',
+                      boxShadow: '0 0 18px rgba(255, 255, 255, 0.25)',
+                    }}
+                  >
+                    <Play size={15} fill="#030304" /> Resume
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
         )}
 
+        {/* ===== GUEST WATCH HISTORY (IndexedDB) ===== */}
+        {historyList.length > 0 && (
+          <div style={{ marginTop: 24, marginBottom: 16 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: isMobile ? '0 16px' : '0 32px', marginBottom: 14,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 8,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Clock size={15} color="#ffffff" />
+                </div>
+                <h2 style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: isMobile ? 16 : 18,
+                  fontWeight: 700, color: '#ffffff', margin: 0,
+                }}>
+                  Jump Back In
+                </h2>
+                <span style={{
+                  padding: '2px 7px', borderRadius: 4, background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)', fontSize: 10.5, color: '#a1a1aa',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600,
+                }}>
+                  Guest History ({historyList.length})
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/history')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
+                  cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12.5,
+                  color: '#a1a1aa', fontWeight: 600, padding: 0, transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
+                onMouseLeave={e => e.currentTarget.style.color = '#a1a1aa'}
+              >
+                All History <ChevronRight size={13} />
+              </button>
+            </div>
+
+            <div className="hide-scrollbar" style={{
+              display: 'flex', gap: isMobile ? 10 : 12, overflowX: 'auto',
+              padding: isMobile ? '0 16px 8px' : '0 32px 8px', scrollSnapType: 'x mandatory',
+            }}>
+              {historyList.slice(0, 10).map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    const targetType = item.type === 'tv' ? 'series' : item.type;
+                    navigate(`/watch/${targetType}/${item.mediaId}`, {
+                      state: {
+                        media: {
+                          _id: item.mediaId, id: item.mediaId, title: item.title,
+                          type: item.type, year: item.year, rating: item.rating,
+                          images: { poster: item.poster, fanart: item.backdrop },
+                        },
+                        startSeason: item.season || 1,
+                        startEpisode: item.episode || 1,
+                        autoPlay: true,
+                      }
+                    });
+                  }}
+                  style={{
+                    width: isMobile ? 130 : 160,
+                    flexShrink: 0,
+                    cursor: 'pointer',
+                    scrollSnapAlign: 'start',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    background: 'rgba(14, 14, 18, 0.85)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <div style={{ position: 'relative', width: '100%', height: isMobile ? 185 : 230, background: '#09090c' }}>
+                    {item.poster ? (
+                      <img src={item.poster} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Film size={24} color="#71717a" />
+                      </div>
+                    )}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(3, 3, 4, 0.95) 0%, transparent 60%)',
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: 8, left: 8,
+                      background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: 4, padding: '2px 6px', fontSize: 9, fontWeight: 700, color: '#ffffff',
+                    }}>
+                      {item.type.toUpperCase()}
+                    </div>
+                    <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8 }}>
+                      <div style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12.5, fontWeight: 700,
+                        color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{item.title}</div>
+                      <div style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10.5, color: '#a1a1aa', marginTop: 2,
+                      }}>
+                        {item.episode ? `Ep ${item.episode}` : (item.year || '—')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ===== MOVIES SECTION ===== */}
-        <div style={{ marginTop: movies.length > 0 ? 40 : 0 }}>
+        <div style={{ marginTop: movies.length > 0 ? 44 : 0 }}>
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -508,26 +618,27 @@ export default function Home() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
-                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, #e8b84b, #c9962e)',
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 6px 16px rgba(232,184,75,0.3)',
+                boxShadow: '0 0 14px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
               }}>
-                <Film size={16} color="#080c14" strokeWidth={2} />
+                <Film size={16} color="#ffffff" strokeWidth={2} />
               </div>
               <h2 style={{
-                fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
-                fontWeight: 900, color: '#e8eaf0', margin: 0, letterSpacing: '-0.3px',
+                fontFamily: "'Cinzel', 'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
+                fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.3px',
               }}>Movies</h2>
             </div>
             <button
               className="hm-explore-btn"
               onClick={() => navigate('/movies')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 4,
+                display: 'flex', alignItems: 'center', gap: 5,
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif", fontSize: 13,
-                color: '#6878a0', fontWeight: 500, padding: 0,
+                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13,
+                color: '#a1a1aa', fontWeight: 600, padding: 0,
               }}
             >
               Explore All <ChevronRight size={14} />
@@ -536,23 +647,22 @@ export default function Home() {
 
           {movies.length > 0 ? (
             <>
-              <ContentRow title="Trending Now" items={trendingMoviesSorted} type="movie" icon={TrendingUp}
-                gradient="linear-gradient(135deg, #e8b84b, #e05fa0)" isFirst isMobile={isMobile} />
+              <ContentRow title="Trending Now" items={trendingMoviesSorted} type="movie" icon={TrendingUp} isFirst isMobile={isMobile} />
               {MOVIE_HOME_GENRES.map(g => (
                 <ContentRow key={g.name} title={g.name} items={movieGenrePools[g.name]} type="movie"
-                  icon={g.icon} gradient={g.gradient} isMobile={isMobile} />
+                  icon={g.icon} isMobile={isMobile} />
               ))}
             </>
           ) : (
-            <div style={{ padding: "40px 16px", textAlign: "center", color: "#888", fontFamily: "'DM Sans', sans-serif" }}>
-              <p style={{ fontSize: 16, marginBottom: 8 }}>🎬 No movies available right now.</p>
-              <p style={{ fontSize: 14, color: "#555" }}>Check back later for new releases!</p>
+            <div style={{ padding: "40px 16px", textAlign: "center", color: "#71717a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <p style={{ fontSize: 15, marginBottom: 8 }}>No movies available right now.</p>
+              <p style={{ fontSize: 13, color: "#52525b" }}>Check back shortly for new additions.</p>
             </div>
           )}
         </div>
 
         {/* ===== SERIES SECTION ===== */}
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 24 }}>
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -565,26 +675,27 @@ export default function Home() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
-                width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, #5ba4d4, #3577a8)',
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 6px 16px rgba(91,164,212,0.3)',
+                boxShadow: '0 0 14px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
               }}>
-                <Tv size={16} color="#080c14" strokeWidth={2} />
+                <Tv size={16} color="#ffffff" strokeWidth={2} />
               </div>
               <h2 style={{
-                fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
-                fontWeight: 900, color: '#e8eaf0', margin: 0, letterSpacing: '-0.3px',
+                fontFamily: "'Cinzel', 'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
+                fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.3px',
               }}>Series</h2>
             </div>
             <button
               className="hm-explore-btn"
               onClick={() => navigate('/series')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 4,
+                display: 'flex', alignItems: 'center', gap: 5,
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif", fontSize: 13,
-                color: '#6878a0', fontWeight: 500, padding: 0,
+                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13,
+                color: '#a1a1aa', fontWeight: 600, padding: 0,
               }}
             >
               Explore All <ChevronRight size={14} />
@@ -593,105 +704,159 @@ export default function Home() {
 
           {loadingSeries ? (
             <div style={{ padding: "40px 0", textAlign: "center" }}>
-              <p style={{ color: "#888", fontFamily: "'DM Sans', sans-serif", fontSize: 16 }}>
+              <p style={{ color: "#71717a", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15 }}>
                 Loading series...
               </p>
             </div>
           ) : series.length > 0 ? (
             <>
-              <ContentRow title="Trending Now" items={trendingSeriesSorted} type="series" icon={TrendingUp}
-                gradient="linear-gradient(135deg, #5ba4d4, #e05fa0)" isFirst isMobile={isMobile} />
+              <ContentRow title="Trending Now" items={trendingSeriesSorted} type="series" icon={TrendingUp} isFirst isMobile={isMobile} />
               {SERIES_HOME_GENRES.map(g => (
                 <ContentRow key={g.name} title={g.name} items={seriesGenrePools[g.name]} type="series"
-                  icon={g.icon} gradient={g.gradient} isMobile={isMobile} />
+                  icon={g.icon} isMobile={isMobile} />
               ))}
             </>
           ) : (
-            <div style={{ padding: "40px 16px", textAlign: "center", color: "#888", fontFamily: "'DM Sans', sans-serif" }}>
-              <p style={{ fontSize: 16, marginBottom: 8 }}>📺 No series available right now.</p>
-              <p style={{ fontSize: 14, color: "#555" }}>Popular shows will appear here!</p>
+            <div style={{ padding: "40px 16px", textAlign: "center", color: "#71717a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <p style={{ fontSize: 15, marginBottom: 8 }}>No series available right now.</p>
+              <p style={{ fontSize: 13, color: "#52525b" }}>Popular television shows will appear here.</p>
             </div>
           )}
         </div>
 
-        {/* ===== FOOTER SECTION ===== */}
+        {/* ===== ANIME SECTION ===== */}
+        <div style={{ marginTop: 44 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: isMobile ? '0 16px' : '0 32px', marginBottom: 18,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 14px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+              }}>
+                <Sparkles size={16} color="#ffffff" strokeWidth={2} />
+              </div>
+              <h2 style={{
+                fontFamily: "'Cinzel', 'Playfair Display', serif", fontSize: isMobile ? 20 : 24,
+                fontWeight: 900, color: '#ffffff', margin: 0, letterSpacing: '-0.3px',
+              }}>Anime</h2>
+            </div>
+            <button
+              className="hm-explore-btn"
+              onClick={() => navigate('/anime')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13,
+                color: '#a1a1aa', fontWeight: 600, padding: 0,
+              }}
+            >
+              Explore All <ChevronRight size={14} />
+            </button>
+          </motion.div>
+
+          <ContentRow
+            title="Trending Anime"
+            items={animeList}
+            type="anime"
+            icon={TrendingUp}
+            isMobile={isMobile}
+          />
+        </div>
+
+        {/* ===== FOOTER & SUPPORT SECTION (Monochrome Gothic Glass) ===== */}
         <div style={{
-          marginTop: 60,
-          paddingTop: 40,
+          marginTop: 70,
+          paddingTop: 45,
           paddingLeft: isMobile ? 16 : 32,
           paddingRight: isMobile ? 16 : 32,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.08)",
         }}>
           
           {/* Donation Section */}
           <div style={{
-            maxWidth: 500,
+            maxWidth: 520,
             margin: "0 auto 40px",
-            background: "rgba(255,255,255,0.03)",
+            background: "rgba(16, 16, 22, 0.7)",
             borderRadius: 20,
-            padding: 30,
-            border: "1px solid rgba(255,255,255,0.08)",
-            backdropFilter: "blur(12px)",
+            padding: isMobile ? 24 : 32,
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
             textAlign: "center",
           }}>
             <div style={{
               width: 56, height: 56, borderRadius: 14, margin: "0 auto 16px",
-              background: "linear-gradient(135deg, #e8b84b, #c9962e)",
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.22)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 8px 20px rgba(232,184,75,0.3)",
+              boxShadow: "0 0 16px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
             }}>
-              <Heart size={26} color="#080c14" fill="#080c14" />
+              <Heart size={24} color="#ffffff" fill="#ffffff" />
             </div>
             <h3 style={{
-              color: "#e8eaf0",
+              color: "#ffffff",
               fontSize: 22,
               fontWeight: 700,
               margin: "0 0 10px 0",
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Cinzel', serif",
             }}>
-              Support This Project
+              Support SinStreams
             </h3>
             <p style={{
-              color: "#6878a0",
+              color: "#a1a1aa",
               fontSize: 14,
               lineHeight: 1.6,
-              marginBottom: 20,
-              fontFamily: "'DM Sans', sans-serif",
+              marginBottom: 22,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}>
-              Help me keep the website running and add more features! 
-              Every contribution makes a difference. （￣︶￣）
+              Help preserve independent streaming and support future development. 
+              Every contribution powers the servers and archives.
             </p>
 
             {!showQR ? (
               <button
                 onClick={() => setShowQR(true)}
                 style={{
-                  background: "linear-gradient(135deg, #e8b84b, #c9962e)",
-                  color: "#080c14",
+                  background: "#ffffff",
+                  color: "#030304",
                   border: "none",
-                  borderRadius: 12,
-                  padding: "14px 30px",
-                  fontSize: 16,
-                  fontWeight: 600,
+                  borderRadius: 11,
+                  padding: "13px 32px",
+                  fontSize: 15,
+                  fontWeight: 700,
                   cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  transition: "transform 0.2s",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  boxShadow: "0 0 20px rgba(255, 255, 255, 0.25)",
+                  transition: "all 0.2s ease",
                 }}
-                onMouseEnter={(e) => e.target.style.transform = "scale(1.05)"}
-                onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+                onMouseEnter={(e) => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 0 28px rgba(255, 255, 255, 0.4)"; }}
+                onMouseLeave={(e) => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 0 20px rgba(255, 255, 255, 0.25)"; }}
               >
-                💰 Support with UPI
+                Support with UPI
               </button>
             ) : (
               <div>
-                {/* QR Code */}
                 <div style={{
                   width: 180,
                   height: 180,
-                  margin: "0 auto 15px",
-                  borderRadius: 15,
+                  margin: "0 auto 16px",
+                  borderRadius: 14,
                   overflow: "hidden",
-                  border: "2px solid rgba(255,255,255,0.15)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  background: "#ffffff",
+                  padding: 8,
                 }}>
                   <img 
                     src="/images/donation-qr.jpeg" 
@@ -699,28 +864,27 @@ export default function Home() {
                     style={{
                       width: "100%",
                       height: "100%",
-                      objectFit: "cover",
+                      objectFit: "contain",
                     }}
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:14px;">QR Code<br/>Placeholder</div>';
+                      e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#000;font-size:13px;font-family:sans-serif;">QR Code Placeholder</div>';
                     }}
                   />
                 </div>
 
-                {/* UPI ID */}
                 <div style={{
-                  background: "rgba(255,255,255,0.05)",
+                  background: "rgba(255, 255, 255, 0.05)",
                   borderRadius: 10,
-                  padding: "10px 15px",
+                  padding: "10px 16px",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 15,
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
                 }}>
                   <code style={{
-                    color: "#4CAF50",
+                    color: "#ffffff",
                     fontSize: 13,
                     fontFamily: "monospace",
                   }}>
@@ -731,16 +895,16 @@ export default function Home() {
                 {/* Quick Pay Buttons */}
                 <div style={{ marginBottom: 15 }}>
                   <p style={{
-                    color: "#666",
+                    color: "#71717a",
                     fontSize: 12,
                     marginBottom: 10,
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
                   }}>
                     Suggested amounts:
                   </p>
                   <div style={{
                     display: "flex",
-                    gap: 8,
+                    gap: 10,
                     justifyContent: "center",
                     flexWrap: "wrap",
                   }}>
@@ -749,24 +913,24 @@ export default function Home() {
                         key={amount}
                         onClick={() => openUPIApp(amount)}
                         style={{
-                          background: "rgba(255,255,255,0.08)",
-                          color: "#fff",
-                          border: "1px solid rgba(255,255,255,0.15)",
+                          background: "rgba(255, 255, 255, 0.06)",
+                          color: "#ffffff",
+                          border: "1px solid rgba(255, 255, 255, 0.16)",
                           borderRadius: 8,
-                          padding: "8px 16px",
+                          padding: "8px 18px",
                           cursor: "pointer",
                           fontSize: 14,
                           fontWeight: 600,
-                          fontFamily: "'DM Sans', sans-serif",
+                          fontFamily: "'Plus Jakarta Sans', sans-serif",
                           transition: "all 0.2s",
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.background = "rgba(232,184,75,0.2)";
-                          e.target.style.borderColor = "#e8b84b";
+                          e.target.style.background = "rgba(255, 255, 255, 0.15)";
+                          e.target.style.borderColor = "rgba(255, 255, 255, 0.4)";
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.background = "rgba(255,255,255,0.08)";
-                          e.target.style.borderColor = "rgba(255,255,255,0.15)";
+                          e.target.style.background = "rgba(255, 255, 255, 0.06)";
+                          e.target.style.borderColor = "rgba(255, 255, 255, 0.16)";
                         }}
                       >
                         ₹{amount}
@@ -778,27 +942,27 @@ export default function Home() {
             )}
 
             <p style={{
-              color: "#555",
+              color: "#71717a",
               fontSize: 11,
               marginTop: 15,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}>
-              🔒 Secure payment • Voluntary contributions only
+              🔒 Voluntary contributions • Thank you for your support
             </p>
           </div>
 
           {/* Contact Section */}
           <div style={{
             textAlign: "center",
-            marginBottom: 30,
+            marginBottom: 32,
           }}>
             <p style={{
-              color: "#888",
-              fontSize: 14,
+              color: "#a1a1aa",
+              fontSize: 13.5,
               marginBottom: 12,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}>
-              📩 If you encounter any issues, contact me:
+              Need assistance or want to connect?
             </p>
             <a
               href="https://www.instagram.com/_ut_sr/"
@@ -807,28 +971,31 @@ export default function Home() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
-                background: "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)",
-                color: "#fff",
+                gap: 9,
+                background: "rgba(255, 255, 255, 0.06)",
+                border: "1px solid rgba(255, 255, 255, 0.18)",
+                color: "#ffffff",
                 textDecoration: "none",
-                padding: "12px 24px",
+                padding: "11px 22px",
                 borderRadius: 12,
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: 600,
-                fontFamily: "'DM Sans', sans-serif",
-                transition: "transform 0.2s, box-shadow 0.2s",
-                boxShadow: "0 4px 15px rgba(220, 39, 67, 0.3)",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                transition: "all 0.2s ease",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
               }}
               onMouseEnter={(e) => {
-                e.target.style.transform = "scale(1.05)";
-                e.target.style.boxShadow = "0 6px 20px rgba(220, 39, 67, 0.5)";
+                e.target.style.background = "rgba(255, 255, 255, 0.14)";
+                e.target.style.borderColor = "rgba(255, 255, 255, 0.4)";
+                e.target.style.transform = "translateY(-1px)";
               }}
               onMouseLeave={(e) => {
-                e.target.style.transform = "scale(1)";
-                e.target.style.boxShadow = "0 4px 15px rgba(220, 39, 67, 0.3)";
+                e.target.style.background = "rgba(255, 255, 255, 0.06)";
+                e.target.style.borderColor = "rgba(255, 255, 255, 0.18)";
+                e.target.style.transform = "translateY(0)";
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
               </svg>
               @_ut_sr
@@ -838,18 +1005,18 @@ export default function Home() {
           {/* Developer Credit */}
           <div style={{
             textAlign: "center",
-            paddingTop: 20,
-            borderTop: "1px solid rgba(255,255,255,0.05)",
+            paddingTop: 22,
+            borderTop: "1px solid rgba(255, 255, 255, 0.06)",
           }}>
             <p style={{
-              color: "#555",
+              color: "#a1a1aa",
               fontSize: 13,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
               margin: 0,
             }}>
-              Developed by{' '}
+              Crafted by{' '}
               <span style={{
-                color: "#e8b84b",
+                color: "#ffffff",
                 fontWeight: 700,
                 letterSpacing: "0.5px",
               }}>
@@ -858,12 +1025,12 @@ export default function Home() {
               {' '}© {new Date().getFullYear()}
             </p>
             <p style={{
-              color: "#444",
+              color: "#52525b",
               fontSize: 11,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
               marginTop: 5,
             }}>
-              All rights reserved. Stream responsibly.
+              SinStreams • Pure Monochrome Glassmorphic Experience
             </p>
           </div>
 
@@ -886,7 +1053,7 @@ const HOME_ROW_CSS = `
   @keyframes hm-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
   .hm-skeleton {
-    background: linear-gradient(90deg, #0d1420 25%, #1a2235 50%, #0d1420 75%);
+    background: linear-gradient(90deg, #09090d 25%, #181822 50%, #09090d 75%);
     background-size: 200% 100%;
     animation: hm-shimmer 1.4s ease infinite;
   }
@@ -894,31 +1061,31 @@ const HOME_ROW_CSS = `
   .hm-explore-btn { transition: color 0.2s ease; }
   .hm-explore-btn svg { transition: transform 0.2s ease; }
   @media (hover: hover) and (pointer: fine) {
-    .hm-explore-btn:hover { color: #e8eaf0 !important; }
-    .hm-explore-btn:hover svg { transform: translateX(3px); }
+    .hm-explore-btn:hover { color: #ffffff !important; }
+    .hm-explore-btn:hover svg { transform: translateX(4px); }
   }
 
   .cw-resume-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
   @media (hover: hover) and (pointer: fine) {
-    .cw-resume-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(232,184,75,0.35); }
+    .cw-resume-btn:hover { transform: translateY(-1px); box-shadow: 0 0 25px rgba(255, 255, 255, 0.45) !important; }
   }
 
   /* Continue Watching card */
   @media (hover: hover) and (pointer: fine) {
-    .cw-card { transition: border-color 0.2s ease, transform 0.2s ease; }
-    .cw-card:hover { border-color: rgba(232,184,75,0.35) !important; transform: translateY(-2px); }
-    .cw-card:hover .cw-play-btn { transform: translate(-50%, -50%) scale(1.1); }
+    .cw-card { transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
+    .cw-card:hover { border-color: rgba(255, 255, 255, 0.35) !important; transform: translateY(-2px); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.08) !important; }
+    .cw-card:hover .cw-play-btn { transform: translate(-50%, -50%) scale(1.08); box-shadow: 0 0 30px rgba(255,255,255,0.6) !important; }
   }
-  .cw-play-btn { transition: transform 0.2s ease; }
+  .cw-play-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 
-  /* Netflix-style hover zoom on cards (desktop only, mouse-capable) */
+  /* Hover zoom on cards (desktop only) */
   @media (hover: hover) and (pointer: fine) {
     .hm-card {
       transition: transform 0.28s cubic-bezier(0.25, 0.8, 0.25, 1);
       transform-origin: center center;
     }
     .hm-card:hover {
-      transform: scale(1.08);
+      transform: scale(1.06);
       z-index: 5;
       position: relative;
     }
@@ -926,14 +1093,14 @@ const HOME_ROW_CSS = `
 
   /* Row scroll arrows */
   .hm-arrow {
-    position: absolute; top: 0; bottom: 12px;
-    width: 44px; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(90deg, #080c14 10%, transparent);
-    border: none; color: #e8eaf0; cursor: pointer;
+    position: absolute; top: 0; bottom: 14px;
+    width: 48px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(90deg, rgba(3,3,4,0.95) 20%, transparent);
+    border: none; color: #ffffff; cursor: pointer;
     opacity: 0; transition: opacity 0.2s ease;
     z-index: 6;
   }
-  .hm-arrow-r { right: 0; background: linear-gradient(270deg, #080c14 10%, transparent); }
+  .hm-arrow-r { right: 0; background: linear-gradient(270deg, rgba(3,3,4,0.95) 20%, transparent); }
   .hm-arrow-l { left: 0; }
   .hm-row:hover .hm-arrow { opacity: 1; }
 
