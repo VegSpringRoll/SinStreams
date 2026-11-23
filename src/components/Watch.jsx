@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import MediaCard from "../components/MediaCard";
-import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize, Minimize, Sparkles, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { Star, Clock, Calendar, ArrowLeft, Play, Monitor, Tv, Maximize, Minimize, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Search, X } from "lucide-react";
 import { getMovies, getShows } from "../../services/mediaService";
 import { saveLastWatched } from "../../services/Watchhistory";
 import { getAnimeDetails, getPopularAnime, resolveEpisodeCount } from "../../services/animeService";
@@ -86,12 +86,19 @@ export default function Watch() {
           });
           setMedia({
             _id: String(data.id),
+            id: String(data.id),
+            tmdbId: data.id,
             imdb_id: data.external_ids?.imdb_id,
             title: data.name,
             type: 'series',
             year: data.first_air_date?.substring(0, 4),
             rating: { percentage: Math.round(data.vote_average * 10) },
             images: { poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null },
+            genres: data.genres?.map(g => g.name) || [],
+            synopsis: data.overview,
+            number_of_seasons: data.number_of_seasons,
+            number_of_episodes: data.number_of_episodes,
+            seasons: data.seasons,
           });
         } else {
           const { data } = await axios.get(`https://api.themoviedb.org/3/movie/${routeId}`, {
@@ -136,8 +143,28 @@ export default function Watch() {
   const [totalEpisodes, setTotalEpisodes] = useState(0);
   const [showDetails, setShowDetails] = useState(null);
 
+  const seasonTrackRef = useRef(null);
+  const activeSeasonBtnRef = useRef(null);
+
   const isAnime = media?.type === 'anime' || routeType === 'anime';
   const isSeries = !isAnime && (media?.type === 'series' || media?.type === 'tv' || routeType === 'series' || routeType === 'tv');
+
+  const scrollSeasonTrack = (direction) => {
+    if (seasonTrackRef.current) {
+      const amount = seasonTrackRef.current.clientWidth * 0.7 * direction;
+      seasonTrackRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (activeSeasonBtnRef.current) {
+      activeSeasonBtnRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [currentSeason]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -211,6 +238,10 @@ export default function Watch() {
     if (!chunk) return episodes;
     return episodes.filter(ep => ep.episode_number >= chunk.start && ep.episode_number <= chunk.end);
   }, [episodes, animeChunks, activeChunkIndex, episodeSearch]);
+
+  const currentEpisodeName = useMemo(() => {
+    return episodes.find(ep => ep.episode_number === currentEpisode)?.name || `Episode ${currentEpisode}`;
+  }, [episodes, currentEpisode]);
 
   const handleSelectAnimeServer = (serverId, lang) => {
     setSelectedAnimeServer(serverId);
@@ -473,8 +504,6 @@ export default function Watch() {
     );
   }
 
-  const currentEpisodeName = episodes.find(ep => ep.episode_number === currentEpisode)?.name || `Episode ${currentEpisode}`;
-
   return (
     <div className="page-content watch-page-root" style={styles.container}>
       {/* Back Button */}
@@ -513,7 +542,9 @@ export default function Watch() {
             <div className="anime-control-bar">
               <div style={styles.episodeInfo}>
                 <span style={styles.episodeLabel}>Now Playing</span>
-                <span style={styles.episodeValue}>Episode {currentEpisode} of {totalEpisodes}</span>
+                <span style={styles.episodeValue}>
+                  Episode {currentEpisode} of {totalEpisodes}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button
@@ -782,24 +813,72 @@ export default function Watch() {
           {isSeries && (
             <div className="watch-episodes" style={{ ...styles.episodesSection, padding: isMobile ? '24px 16px' : '36px 32px' }}>
               <div style={styles.episodesHeader}>
-                <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? 18 : 22, margin: 0 }}>Episodes</h2>
-                {totalEpisodes > 0 && <span style={styles.episodesCount}>{totalEpisodes} episodes</span>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? 18 : 22, margin: 0 }}>Episodes</h2>
+                  {totalEpisodes > 0 && <span style={styles.episodesCount}>{totalEpisodes} episodes</span>}
+                </div>
+
+                {/* Season Quick-Jump Dropdown when many seasons */}
+                {seasons.length > 3 && (
+                  <div className="season-select-wrapper">
+                    <span className="season-select-label">Season:</span>
+                    <div className="season-dropdown-box">
+                      <select
+                        value={currentSeason}
+                        onChange={(e) => handleSeasonChange(Number(e.target.value))}
+                        className="season-dropdown-native"
+                        aria-label="Select Season"
+                      >
+                        {seasons.map(s => (
+                          <option key={s.season_number} value={s.season_number}>
+                            {s.name} {s.episode_count ? `(${s.episode_count} eps)` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="season-dropdown-chevron" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {seasons.length > 1 && (
-                <div className="season-pills hide-scrollbar" style={styles.seasonPillRow}>
-                  {seasons.map(s => (
+                <div className="season-slider-container">
+                  {seasons.length > 6 && (
                     <button
-                      key={s.season_number}
-                      onClick={() => handleSeasonChange(s.season_number)}
-                      style={{
-                        ...styles.seasonPill,
-                        ...(s.season_number === currentSeason ? styles.seasonPillActive : {})
-                      }}
+                      className="season-slider-nav prev"
+                      onClick={() => scrollSeasonTrack(-1)}
+                      aria-label="Previous seasons"
                     >
-                      {s.name}
+                      <ChevronLeft size={16} />
                     </button>
-                  ))}
+                  )}
+                  <div
+                    ref={seasonTrackRef}
+                    className="season-pills-track hide-scrollbar"
+                  >
+                    {seasons.map(s => {
+                      const isActive = s.season_number === currentSeason;
+                      return (
+                        <button
+                          key={s.season_number}
+                          ref={isActive ? activeSeasonBtnRef : null}
+                          onClick={() => handleSeasonChange(s.season_number)}
+                          className={`season-pill-btn ${isActive ? 'season-pill-btn-active' : ''}`}
+                        >
+                          {s.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {seasons.length > 6 && (
+                    <button
+                      className="season-slider-nav next"
+                      onClick={() => scrollSeasonTrack(1)}
+                      aria-label="Next seasons"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1304,6 +1383,142 @@ const WATCH_CSS = `
     border-color: #ffffff !important;
     font-weight: 800 !important;
     box-shadow: 0 0 14px rgba(255, 255, 255, 0.4) !important;
+  }
+
+  /* Season Slider & Dropdown Navigation */
+  .season-select-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .season-select-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .season-dropdown-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .season-dropdown-native {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(20, 20, 26, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 32px 7px 14px;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+  }
+  .season-dropdown-native:hover, .season-dropdown-native:focus {
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+  }
+  .season-dropdown-chevron {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: #a1a1aa;
+  }
+
+  .season-slider-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+  }
+  .season-pills-track {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 2px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .season-slider-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(20, 20, 26, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+    transition: all 0.2s ease;
+    z-index: 2;
+  }
+  .season-slider-nav:hover {
+    background: #ffffff;
+    color: #030304;
+    border-color: #ffffff;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+  }
+  .season-pill-btn {
+    flex-shrink: 0;
+    padding: 8px 18px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #a1a1aa;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+  .season-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+  }
+  .season-pill-btn-active {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    color: #030304 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.3) !important;
+  }
+
+  @media (max-width: 768px) {
+    .season-slider-nav {
+      display: none;
+    }
+    .season-select-wrapper {
+      width: 100%;
+      margin-left: 0;
+      margin-top: 6px;
+      justify-content: space-between;
+    }
+    .season-dropdown-native {
+      width: 100%;
+      font-size: 13px;
+      padding: 8px 30px 8px 12px;
+    }
+    .season-pill-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+    }
   }
 `;
 
