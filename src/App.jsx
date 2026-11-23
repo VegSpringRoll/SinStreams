@@ -1,5 +1,7 @@
 import './App.css'
 import Navbar from './components/Navbar'
+import FairyLights from './components/FairyLights'
+import Snowflakes from './components/Snowflakes'
 import { Routes, Route } from 'react-router-dom'
 import Home from './components/Home'
 import Watch from './components/Watch'
@@ -14,7 +16,9 @@ import History from './components/History'
 function App() {
   return (
     <>
+      <Snowflakes />
       <Navbar />
+      <FairyLights />
 
       <Routes>
         <Route path="/" element={<Home />} />

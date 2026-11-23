@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MediaCard from './MediaCard';
+import HeroSlider from './HeroSlider';
 import { getShows, getShowsByGenre } from '../../services/mediaService';
 import {
   Tv, ChevronRight, ChevronLeft, TrendingUp, Drama, Laugh, Swords, Orbit,
@@ -311,12 +312,17 @@ export default function Series() {
 
   // ── Main Layout ───────────────────────────────────────────────────────────
   return (
-    <div style={{ background: '#030304', minHeight: '100vh', paddingTop: 70 }}>
+    <div style={{ background: '#030304', minHeight: '100vh', paddingTop: trendingSorted.length > 0 ? 0 : 70, overflowX: 'hidden' }}>
       <style>{CSS}</style>
+
+      {/* Featured Hero Cover Slider (just like in home page) */}
+      {trendingSorted.length > 0 && (
+        <HeroSlider slides={trendingSorted.slice(0, 5)} autoPlay={true} />
+      )}
 
       {/* Header */}
       <div style={{
-        padding: isMobile ? '24px 16px 18px' : '36px 32px 24px',
+        padding: isMobile ? '28px 16px 18px' : '40px 32px 24px',
         borderBottom: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: 8,
       }}>
         <h1 style={{

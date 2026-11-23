@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MediaCard from './MediaCard';
+import HeroSlider from './HeroSlider';
 import {
   getTrendingAnime,
   getPopularAnime,
@@ -298,12 +299,19 @@ export default function Anime() {
     return genrePools[activePill] || [];
   }, [activePill, trending, popular, genrePools]);
 
+  const showHero = !searchQuery.trim() && activePill === 'All' && trending.length > 0;
+
   return (
-    <div style={{ background: '#030304', minHeight: '100vh', paddingTop: 85, paddingBottom: 60 }}>
+    <div style={{ background: '#030304', minHeight: '100vh', paddingTop: showHero ? 0 : 85, paddingBottom: 60, overflowX: 'hidden' }}>
       <style>{ANIME_CSS}</style>
 
+      {/* Featured Hero Cover Slider (just like in home page) */}
+      {showHero && (
+        <HeroSlider slides={trending.slice(0, 5)} autoPlay={true} />
+      )}
+
       {/* Hero Header */}
-      <div style={{ padding: isMobile ? '0 16px 20px' : '0 32px 24px' }}>
+      <div style={{ padding: isMobile ? '24px 16px 20px' : '36px 32px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
           <h1 style={{
             fontFamily: "'Cinzel', 'Playfair Display', serif",

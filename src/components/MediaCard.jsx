@@ -70,7 +70,17 @@ export default function MediaCard({
     imdb_id,
   } = media;
 
-  const poster = imgError ? null : (images?.poster || images?.fanart || null);
+  const poster = imgError ? null : (
+    images?.poster ||
+    images?.fanart ||
+    images?.backdrop ||
+    media.coverImage?.extraLarge ||
+    media.coverImage?.large ||
+    media.coverImage?.medium ||
+    media.bannerImage ||
+    media.poster ||
+    null
+  );
   const imdbScore = rating && typeof rating === "object"
     ? rating.percentage / 10
     : typeof rating === "number"
@@ -157,9 +167,9 @@ export default function MediaCard({
             width: "100%", height: dims.posterH, borderRadius: 12, overflow: "hidden",
             cursor: "pointer", position: "relative",
             background: "linear-gradient(135deg, #09090d 0%, #16161d 100%)",
-            border: hovered && !isMobile ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+            border: hovered && !isMobile ? "1px solid rgba(255, 255, 255, 0.45)" : "1px solid rgba(255, 255, 255, 0.08)",
             boxShadow: hovered && !isMobile
-              ? "0 22px 50px rgba(0,0,0,0.8), 0 0 22px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)"
+              ? "0 22px 50px rgba(0,0,0,0.85), 0 0 28px rgba(255, 255, 255, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.35)"
               : "0 6px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
             transition: "box-shadow 0.28s ease, border-color 0.28s ease",
           }}
@@ -170,6 +180,8 @@ export default function MediaCard({
               <img
                 src={poster}
                 alt={title}
+                loading="lazy"
+                decoding="async"
                 onError={() => setImgError(true)}
                 onLoad={() => setImgLoaded(true)}
                 style={{
