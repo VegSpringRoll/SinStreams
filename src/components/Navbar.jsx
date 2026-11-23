@@ -39,6 +39,19 @@ export default function Navbar() {
   const searchRef  = useRef(null);
   const profileRef = useRef(null);
 
+  const isAnimeSection = location.pathname.startsWith('/anime') || 
+                        location.pathname.startsWith('/watch/anime') || 
+                        location.pathname.startsWith('/details/anime');
+
+  // Close search overlay if user navigates into anime section
+  useEffect(() => {
+    if (isAnimeSection && searchOpen) {
+      setSearchOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
+    }
+  }, [isAnimeSection, searchOpen]);
+
   // ── Scroll detection ───────────────────────────────────────────────────────
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -329,10 +342,12 @@ export default function Navbar() {
         {/* ── RIGHT SIDE ── */}
         <div className="sin-navbar-right">
 
-          {/* Search toggle */}
-          <button className="sin-icon-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
-            <Search size={16} />
-          </button>
+          {/* Search toggle (hidden in anime section so dedicated anime search bar remains clear) */}
+          {!isAnimeSection && (
+            <button className="sin-icon-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
+              <Search size={16} />
+            </button>
+          )}
 
           {/* Notifications */}
           {isSignedIn && (

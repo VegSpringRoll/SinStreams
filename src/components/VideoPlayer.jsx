@@ -29,8 +29,8 @@ const ANIME_SERVERS = [
   {
     id: 'makima',
     name: 'Makima',
-    subUrl: (ani, mal, ep) => `https://anyembed.se/e/${ani || mal}/${ep}?lang=sub&autoplay=1`,
-    dubUrl: (ani, mal, ep) => `https://anyembed.se/e/${ani || mal}/${ep}?lang=dub&autoplay=1`,
+    subUrl: (ani, mal, ep) => `https://aniembed.se/e/${ani || mal}/${ep}?lang=sub`,
+    dubUrl: (ani, mal, ep) => `https://aniembed.se/e/${ani || mal}/${ep}?lang=dub`,
   },
 ];
 
