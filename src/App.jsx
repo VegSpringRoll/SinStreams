@@ -12,6 +12,7 @@ import Details from './components/details'
 import LiveTV from './components/LiveTV'
 import Anime from './components/Anime'
 import History from './components/History'
+import { Analytics } from '@vercel/analytics/react'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/details/:type/:id" element={<Details />} />
         <Route path="/watch/:type/:id" element={<Watch />} />
       </Routes>
+      <Analytics />
     </>
   )
 }
