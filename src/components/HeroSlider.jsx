@@ -57,18 +57,13 @@ export default function HeroSlider({
   autoPlay   = true,
   onPlay,
 }) {
-  if (!slides || slides.length === 0) {
-    return <div style={{ height: "100vh", background: "#030304" }} />;
-  }
+  const safeSlides = slides && slides.length > 0 ? slides : DEFAULT_SLIDES;
+  const slidesCount = safeSlides.length;
 
   const [current,   setCurrent]   = useState(0);
-  const [prev,      setPrev]      = useState(null);
   const [direction, setDirection] = useState(1);
-  const [paused,    setPaused]    = useState(false);
   const [imgLoaded, setImgLoaded] = useState({});
   const [progress,  setProgress]  = useState(0);
-  const intervalRef = useRef(null);
-  const progressRef = useRef(null);
   const navigate = useNavigate();
 
   // ── Responsive: detect mobile viewport ──
@@ -81,42 +76,77 @@ export default function HeroSlider({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const slide   = slides[current];
+  // Clamp current index if slides list size changes
+  useEffect(() => {
+    if (current >= slidesCount) {
+      setCurrent(0);
+    }
+  }, [slidesCount, current]);
+
+  const safeIndex = current < slidesCount ? current : 0;
+  const slide   = safeSlides[safeIndex];
   const cfg     = TYPE_CONFIG[slide?.type] || TYPE_CONFIG.movie;
-  const quality = slide.torrents?.["2160p"] ? "2160p" : slide.torrents?.["1080p"] ? "1080p" : slide.torrents?.["720p"] ? "720p" : null;
+  const quality = slide?.torrents?.["2160p"] ? "2160p" : slide?.torrents?.["1080p"] ? "1080p" : slide?.torrents?.["720p"] ? "720p" : null;
   const score   = slide?.rating?.percentage ? (slide.rating.percentage / 10).toFixed(1) : null;
 
-  // ── Auto-advance ────────────────────────────────────────────────────────────
+  // ── Navigation ─────────────────────────────────────────────────────────────
   const goTo = useCallback((idx, dir = 1) => {
-    setPrev(current);
     setDirection(dir);
-    setCurrent(idx);
+    setCurrent(((idx % slidesCount) + slidesCount) % slidesCount);
     setProgress(0);
-  }, [current]);
+  }, [slidesCount]);
 
   const goNext = useCallback(() => {
-    goTo((current + 1) % slides.length, 1);
-  }, [current, slides.length, goTo]);
+    setDirection(1);
+    setCurrent(c => (c + 1) % slidesCount);
+    setProgress(0);
+  }, [slidesCount]);
 
   const goPrev = useCallback(() => {
-    goTo((current - 1 + slides.length) % slides.length, -1);
-  }, [current, slides.length, goTo]);
-
-  useEffect(() => {
-    if (!autoPlay || paused) return;
-    intervalRef.current = setInterval(goNext, AUTOPLAY_INTERVAL);
-    return () => clearInterval(intervalRef.current);
-  }, [autoPlay, paused, goNext]);
-
-  useEffect(() => {
-    if (!autoPlay || paused) return;
+    setDirection(-1);
+    setCurrent(c => (c - 1 + slidesCount) % slidesCount);
     setProgress(0);
-    const step = 100 / (AUTOPLAY_INTERVAL / 100);
-    progressRef.current = setInterval(() => {
-      setProgress(p => Math.min(p + step, 100));
-    }, 100);
-    return () => clearInterval(progressRef.current);
-  }, [current, autoPlay, paused]);
+  }, [slidesCount]);
+
+  // Continuous auto-advance — never pauses on hover/tap so banners always keep rotating
+  useEffect(() => {
+    if (!autoPlay || slidesCount <= 1) return;
+    let startTime = Date.now();
+    setProgress(0);
+
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min((elapsed / AUTOPLAY_INTERVAL) * 100, 100);
+      setProgress(pct);
+
+      if (elapsed >= AUTOPLAY_INTERVAL) {
+        startTime = Date.now();
+        setDirection(1);
+        setCurrent(c => (c + 1) % slidesCount);
+        setProgress(0);
+      }
+    }, 80);
+
+    return () => clearInterval(timer);
+  }, [autoPlay, slidesCount, safeIndex]);
+
+  // Preload next slide backdrop for seamless transition
+  useEffect(() => {
+    if (slidesCount <= 1) return;
+    const nextSlide = safeSlides[(safeIndex + 1) % slidesCount];
+    const nextUrl = getBackdrop(
+      nextSlide?.images?.fanart ||
+        nextSlide?.images?.backdrop ||
+        nextSlide?.bannerImage ||
+        nextSlide?.images?.poster ||
+        nextSlide?.coverImage?.extraLarge,
+      isMobile
+    );
+    if (nextUrl) {
+      const img = new Image();
+      img.src = nextUrl;
+    }
+  }, [safeIndex, slidesCount, safeSlides, isMobile]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -198,11 +228,7 @@ export default function HeroSlider({
         }
       `}</style>
 
-      <div
-        className="hero-slider-container hs-viewport"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-      >
+      <div className="hero-slider-container hs-viewport">
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={slide._id || slide.id || current}
@@ -408,13 +434,13 @@ export default function HeroSlider({
             display: "flex", flexDirection: "column", gap: 12,
             zIndex: 10,
           }}>
-            {slides.map((s, i) => {
-              const isActive = i === current;
+            {safeSlides.map((s, i) => {
+              const isActive = i === safeIndex;
               const thumbImg = s.images?.poster || s.images?.fanart || s.coverImage?.large || s.bannerImage;
               return (
                 <motion.div
                   key={s._id || s.id || i}
-                  onClick={() => goTo(i, i > current ? 1 : -1)}
+                  onClick={() => goTo(i, i > safeIndex ? 1 : -1)}
                   animate={{ opacity: isActive ? 1 : 0.45, scale: isActive ? 1 : 0.92 }}
                   transition={{ duration: 0.25 }}
                   style={{
@@ -458,12 +484,12 @@ export default function HeroSlider({
           )}
 
           <div style={{ display: "flex", gap: isMobile ? 6 : 8, alignItems: "center" }}>
-            {slides.map((s, i) => {
-              const isActive = i === current;
+            {safeSlides.map((s, i) => {
+              const isActive = i === safeIndex;
               return (
                 <div
-                  key={s._id}
-                  onClick={() => goTo(i, i > current ? 1 : -1)}
+                  key={s._id || s.id || i}
+                  onClick={() => goTo(i, i > safeIndex ? 1 : -1)}
                   style={{
                     position: "relative", height: 3.5,
                     width: isActive ? (isMobile ? 30 : 44) : (isMobile ? 14 : 22), borderRadius: 2,
@@ -483,7 +509,7 @@ export default function HeroSlider({
           </div>
 
           <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 12, color: "#71717a", marginLeft: 6, fontWeight: 500 }}>
-            {String(current + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
+            {String(safeIndex + 1).padStart(2, "0")} / {String(slidesCount).padStart(2, "0")}
           </span>
         </div>
 

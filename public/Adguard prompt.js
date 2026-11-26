@@ -16,6 +16,7 @@
 
   function init() {
     if (localStorage.getItem(HIDE_KEY) === "true") return;
+    if (document.getElementById("adguard-prompt-overlay")) return;
 
     var overlay = document.createElement("div");
     overlay.id = "adguard-prompt-overlay";
@@ -37,7 +38,7 @@
 
     var style = document.createElement("style");
     style.textContent =
-      "#adguard-prompt-overlay{position:fixed;left:0;right:0;bottom:0;z-index:999999;" +
+      "#adguard-prompt-overlay{position:fixed;left:0;right:0;bottom:0;z-index:15000;" +
       "display:flex;justify-content:center;padding:20px;" +
       "font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;" +
       "animation:adguard-slide-up .25s ease-out;}" +
@@ -78,9 +79,27 @@
     // until the user explicitly checks "Never show this again".
   }
 
+  function waitForIntroAndInit() {
+    if (localStorage.getItem(HIDE_KEY) === "true") return;
+    if (window.__sinSplashDone) {
+      init();
+      return;
+    }
+
+    var started = false;
+    function showAfterIntro() {
+      if (started) return;
+      started = true;
+      window.removeEventListener("sinstreams:splash-complete", showAfterIntro);
+      setTimeout(init, 200);
+    }
+
+    window.addEventListener("sinstreams:splash-complete", showAfterIntro);
+  }
+
   if (document.readyState === "complete" || document.readyState === "interactive") {
-    init();
+    waitForIntroAndInit();
   } else {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", waitForIntroAndInit);
   }
 })();
