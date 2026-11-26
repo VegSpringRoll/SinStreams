@@ -13,6 +13,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.61.5",
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@vercel/analytics": "^2.0.1",
     "axios": "^1.15.2",
     "cheerio": "^1.2.0",
     "cors": "^2.8.6",
